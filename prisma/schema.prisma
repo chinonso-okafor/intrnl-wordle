@@ -1,0 +1,71 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String
+  passwordHash  String    @map("password_hash")
+  role          String    @default("USER") // "USER" or "ADMIN"
+  avatar        String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  games         Game[]
+  streaks       Streak?
+
+  @@map("users")
+}
+
+model Word {
+  id          String   @id @default(cuid())
+  word        String   @unique
+  dateUsed    DateTime @unique @map("date_used")
+  createdBy   String   @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  games       Game[]
+
+  @@map("words")
+}
+
+model Game {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  wordId      String   @map("word_id")
+  date        DateTime // SQLite doesn't support @db.Date
+  guesses     String   // JSON string array: ["WORD1", "WORD2"]
+  solved      Boolean  @default(false)
+  attempts    Int
+  points      Int
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  word        Word     @relation(fields: [wordId], references: [id])
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@index([date])
+  @@map("games")
+}
+
+model Streak {
+  id            String   @id @default(cuid())
+  userId        String   @unique @map("user_id")
+  currentStreak Int      @default(0) @map("current_streak")
+  longestStreak Int      @default(0) @map("longest_streak")
+  lastPlayed    DateTime @map("last_played")
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("streaks")
+}
