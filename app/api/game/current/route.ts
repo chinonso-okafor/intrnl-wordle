@@ -50,8 +50,10 @@ export async function GET() {
       guesses: JSON.parse(game.guesses || "[]"),
     } : null;
 
+    // SECURITY: Never return the word to frontend - only return wordId
+    // The word is only revealed after game completion in /api/game/result
     return NextResponse.json({
-      word: word.word,
+      wordId: word.id,
       game: gameData,
     });
   } catch (error) {

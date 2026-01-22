@@ -1,4 +1,5 @@
-// Common 5-letter words for Wordle
+// Legacy word list - kept for fallback and initial seeding
+// New system uses AnswerWord and ValidationWord models with in-memory Sets
 export const VALID_WORDS = [
   "ABOUT", "ABOVE", "ABUSE", "ACTOR", "ACUTE", "ADMIT", "ADOPT", "ADULT", "AFTER", "AGAIN",
   "AGENT", "AGREE", "AHEAD", "ALARM", "ALBUM", "ALERT", "ALIEN", "ALIGN", "ALIKE", "ALIVE",
@@ -6,7 +7,7 @@ export const VALID_WORDS = [
   "APPLY", "ARENA", "ARGUE", "ARISE", "ARRAY", "ARROW", "ASIDE", "ASSET", "AVOID", "AWAKE",
   "AWARD", "AWARE", "BADLY", "BAKER", "BASES", "BASIC", "BEACH", "BEGAN", "BEGIN", "BEING",
   "BELOW", "BENCH", "BILLY", "BIRTH", "BLACK", "BLAME", "BLANK", "BLAST", "BLIND", "BLOCK",
-  "BLOOD", "BLOOM", "BLOW", "BLUE", "BOARD", "BOAST", "BOBBY", "BOOST", "BOOTH", "BOUND",
+  "BLOOD", "BLOOM", "BOARD", "BOAST", "BOBBY", "BOOST", "BOOTH", "BOUND",
   "BRAIN", "BRAND", "BRASS", "BRAVE", "BREAD", "BREAK", "BREED", "BRIEF", "BRING", "BROAD",
   "BROKE", "BROWN", "BRUSH", "BUDDY", "BUILD", "BUILT", "BUNCH", "BURST", "BUYER", "CABLE",
   "CALIF", "CARRY", "CATCH", "CAUSE", "CHAIN", "CHAIR", "CHAOS", "CHARM", "CHART", "CHASE",
@@ -17,11 +18,11 @@ export const VALID_WORDS = [
   "DEALT", "DEATH", "DEBUT", "DELAY", "DEPTH", "DOING", "DOUBT", "DOZEN", "DRAFT", "DRAMA",
   "DRANK", "DRAWN", "DREAM", "DRESS", "DRILL", "DRINK", "DRIVE", "DROVE", "DYING", "EAGER",
   "EARLY", "EARTH", "EIGHT", "ELITE", "EMPTY", "ENEMY", "ENJOY", "ENTER", "ENTRY", "EQUAL",
-  "ERROR", "EVENT", "EVERY", "EXACT", "EXIST", "EXTRA", "FAITH", "FALSE", "FAMILY", "FANCY",
-  "FARGO", "FATAL", "FATIGUE", "FAULT", "FIBER", "FIELD", "FIFTH", "FIFTY", "FIGHT", "FINAL",
+  "ERROR", "EVENT", "EVERY", "EXACT", "EXIST", "EXTRA", "FAITH", "FALSE", "FANCY",
+  "FARGO", "FATAL", "FAULT", "FIBER", "FIELD", "FIFTH", "FIFTY", "FIGHT", "FINAL",
   "FIRST", "FIXED", "FLASH", "FLEET", "FLOOR", "FLUID", "FOCUS", "FORCE", "FORTH", "FORTY",
   "FORUM", "FOUND", "FRAME", "FRANK", "FRAUD", "FRESH", "FRONT", "FROST", "FRUIT", "FULLY",
-  "FUNNY", "GIANT", "GIVEN", "GLASS", "GLOBE", "GLORY", "GOLD", "GONE", "GOOD", "GRACE",
+  "FUNNY", "GIANT", "GIVEN", "GLASS", "GLOBE", "GLORY", "GRACE",
   "GRADE", "GRAIN", "GRAND", "GRANT", "GRASS", "GRAVE", "GREAT", "GREEN", "GROSS", "GROUP",
   "GROWN", "GUARD", "GUESS", "GUEST", "GUIDE", "GUILT", "HAPPY", "HARRY", "HARSH", "HATCH",
   "HEART", "HEAVY", "HENCE", "HENRY", "HORSE", "HOTEL", "HOUSE", "HUMAN", "HURRY", "IMAGE",
@@ -32,7 +33,7 @@ export const VALID_WORDS = [
   "MAYOR", "MEANT", "MEDIA", "METAL", "MIGHT", "MINOR", "MINUS", "MIXED", "MODEL", "MONEY",
   "MONTH", "MORAL", "MOTOR", "MOUNT", "MOUSE", "MOUTH", "MOVED", "MOVIE", "MUSIC", "NEEDS",
   "NEVER", "NEWLY", "NIGHT", "NOISE", "NORTH", "NOTED", "NOVEL", "NURSE", "OCCUR", "OCEAN",
-  "OFFER", "OFTEN", "ORDER", "ORGAN", "OTHER", "OUGHT", "OUTPUT", "OWNER", "PAPER", "PARTY",
+  "OFFER", "OFTEN", "ORDER", "ORGAN", "OTHER", "OUGHT", "OWNER", "PAPER", "PARTY",
   "PEACE", "PETER", "PHASE", "PHONE", "PHOTO", "PIANO", "PIECE", "PILOT", "PITCH", "PLACE",
   "PLAIN", "PLANE", "PLANT", "PLATE", "POINT", "POUND", "POWER", "PRESS", "PRICE", "PRIDE",
   "PRIME", "PRINT", "PRIOR", "PRIZE", "PROOF", "PROUD", "PROVE", "QUEEN", "QUICK", "QUIET",
@@ -42,10 +43,10 @@ export const VALID_WORDS = [
   "SCENE", "SCOPE", "SCORE", "SENSE", "SERVE", "SEVEN", "SHADE", "SHAKE", "SHALL", "SHAPE",
   "SHARE", "SHARP", "SHEET", "SHELF", "SHELL", "SHIFT", "SHINE", "SHIRT", "SHOCK", "SHOOT",
   "SHORT", "SHOWN", "SIDED", "SIGHT", "SINCE", "SIXTH", "SIXTY", "SIZED", "SKILL", "SLEEP",
-  "SLIDE", "SMALL", "SMART", "SMILE", "SMITH", "SMOKE", "SNACK", "SNAKE", "SNOW", "SOLAR",
+  "SLIDE", "SMALL", "SMART", "SMILE", "SMITH", "SMOKE", "SNACK", "SNAKE", "SOLAR",
   "SOLID", "SOLVE", "SORRY", "SOUND", "SOUTH", "SPACE", "SPARE", "SPEAK", "SPEED", "SPEND",
   "SPENT", "SPLIT", "SPOKE", "SPORT", "SQUAD", "STACK", "STAFF", "STAGE", "STAKE", "STAND",
-  "START", "STATE", "STEAM", "STEEL", "STEEP", "STEER", "STEM", "STICK", "STILL", "STOCK",
+  "START", "STATE", "STEAM", "STEEL", "STEEP", "STEER", "STICK", "STILL", "STOCK",
   "STONE", "STOOD", "STORE", "STORM", "STORY", "STRIP", "STUCK", "STUDY", "STUFF", "STYLE",
   "SUGAR", "SUITE", "SUPER", "SWEET", "TABLE", "TAKEN", "TASTE", "TAXES", "TEACH", "TEAMS",
   "TEETH", "TERMS", "TERRY", "TEXAS", "THANK", "THEFT", "THEIR", "THEME", "THERE", "THESE",
@@ -60,6 +61,18 @@ export const VALID_WORDS = [
   "YOUTH"
 ];
 
-export function isValidWord(word: string): boolean {
+// Use new validation system if available, fallback to legacy list
+export async function isValidWord(word: string): Promise<boolean> {
+  try {
+    const { isValidWord: newIsValidWord } = await import("./validation-words");
+    return newIsValidWord(word);
+  } catch {
+    // Fallback to legacy validation
+    return VALID_WORDS.includes(word.toUpperCase());
+  }
+}
+
+// Synchronous version for backward compatibility (uses legacy list)
+export function isValidWordSync(word: string): boolean {
   return VALID_WORDS.includes(word.toUpperCase());
 }

@@ -25,7 +25,7 @@ export function Nav() {
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center">
             <Link href="/game" className="text-2xl font-bold text-wordle-text">
-              Wordle
+              Optimizer+ Wordle
             </Link>
             <div className="ml-10 flex space-x-4">
               {navItems.map((item) => (
