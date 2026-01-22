@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { isValidWord } from "@/lib/words";
+import { isValidWordSync } from "@/lib/words";
+import { logAdminAction, AdminActions } from "@/lib/admin-logger";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -13,6 +14,7 @@ export async function GET() {
 
   try {
     const words = await prisma.word.findMany({
+      include: { answerWord: true },
       orderBy: { dateUsed: "desc" },
       take: 100,
     });
@@ -20,7 +22,7 @@ export async function GET() {
     return NextResponse.json({
       words: words.map((w) => ({
         id: w.id,
-        word: w.word,
+        word: w.answerWord?.word || "UNKNOWN",
         dateUsed: w.dateUsed.toISOString(),
       })),
     });
@@ -44,8 +46,29 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Word must be 5 letters" }, { status: 400 });
     }
 
-    if (!isValidWord(word)) {
-      return NextResponse.json({ error: "Not a valid word" }, { status: 400 });
+    const wordUpper = word.toUpperCase();
+
+    // Check if word exists in answer words table
+    let answerWord = await prisma.answerWord.findUnique({
+      where: { word: wordUpper },
+    });
+
+    if (!answerWord) {
+      // Check if it's a valid word first
+      const { isValidWordSync } = await import("@/lib/words");
+      if (!isValidWordSync(wordUpper)) {
+        return NextResponse.json({ 
+          error: "Not a valid word" 
+        }, { status: 400 });
+      }
+      
+      // Create answer word if it doesn't exist (supplemental)
+      answerWord = await prisma.answerWord.create({
+        data: {
+          word: wordUpper,
+          source: "supplemental",
+        },
+      });
     }
 
     const wordDate = new Date(date);
@@ -61,9 +84,17 @@ export async function POST(request: Request) {
       const updated = await prisma.word.update({
         where: { id: existing.id },
         data: {
-          word: word.toUpperCase(),
+          answerWordId: answerWord.id,
           createdBy: session.user.id as string,
         },
+        include: { answerWord: true },
+      });
+
+      // Log admin action
+      await logAdminAction(session.user.id as string, AdminActions.SET_WORD, {
+        word: wordUpper,
+        date: wordDate.toISOString(),
+        action: "updated",
       });
 
       return NextResponse.json({ word: updated });
@@ -71,10 +102,18 @@ export async function POST(request: Request) {
       // Create new word
       const newWord = await prisma.word.create({
         data: {
-          word: word.toUpperCase(),
+          answerWordId: answerWord.id,
           dateUsed: wordDate,
           createdBy: session.user.id as string,
         },
+        include: { answerWord: true },
+      });
+
+      // Log admin action
+      await logAdminAction(session.user.id as string, AdminActions.SET_WORD, {
+        word: wordUpper,
+        date: wordDate.toISOString(),
+        action: "created",
       });
 
       return NextResponse.json({ word: newWord });

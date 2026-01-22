@@ -22,12 +22,9 @@ export function getAnswerWordsSet(): Set<string> | null {
   return answerWordsSet;
 }
 
-export function isAnswerWord(word: string): boolean {
-  if (!answerWordsSet) {
-    // If not initialized, return false (should initialize first)
-    return false;
-  }
-  return answerWordsSet.has(word.toUpperCase());
+export async function isAnswerWord(word: string): Promise<boolean> {
+  const set = await initializeAnswerWords();
+  return set.has(word.toUpperCase());
 }
 
 export function refreshAnswerWordsSet(): void {

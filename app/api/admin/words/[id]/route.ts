@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { logAdminAction, AdminActions } from "@/lib/admin-logger";
 
 export async function DELETE(
   request: Request,
@@ -14,8 +15,23 @@ export async function DELETE(
   }
 
   try {
+    const word = await prisma.word.findUnique({
+      where: { id: params.id },
+      include: { answerWord: true },
+    });
+
+    if (!word) {
+      return NextResponse.json({ error: "Word not found" }, { status: 404 });
+    }
+
     await prisma.word.delete({
       where: { id: params.id },
+    });
+
+    // Log admin action
+    await logAdminAction(session.user.id as string, AdminActions.DELETE_WORD, {
+      word: word.answerWord.word,
+      date: word.dateUsed.toISOString(),
     });
 
     return NextResponse.json({ success: true });

@@ -42,33 +42,59 @@ export function evaluateGuess(guess: string, target: string): LetterEvaluation[]
   return result;
 }
 
-export function calculatePoints(attempts: number, solved: boolean, streakDays: number): number {
+export async function calculatePoints(attempts: number, solved: boolean, streakDays: number): Promise<number> {
+  // Load settings from database
+  const { prisma } = await import("./db");
+  
+  const settings = await prisma.appSettings.findMany();
+  const settingsMap: Record<string, any> = {
+    streakBonus3Day: 2,
+    streakBonus7Day: 5,
+    streakBonus30Day: 10,
+    baseSolvePoints: 10,
+    failedAttemptPoints: 5,
+    attemptBonus1: 5,
+    attemptBonus2: 4,
+    attemptBonus3: 3,
+    attemptBonus4: 2,
+    attemptBonus5: 1,
+    attemptBonus6: 1,
+  };
+
+  settings.forEach((s) => {
+    try {
+      settingsMap[s.key] = JSON.parse(s.value);
+    } catch {
+      settingsMap[s.key] = s.value;
+    }
+  });
+
   if (!solved) {
-    return 5; // Failed attempt base points
+    return settingsMap.failedAttemptPoints || 5;
   }
 
   // Base points for solving
-  let points = 10;
+  let points = settingsMap.baseSolvePoints || 10;
 
   // Attempt bonus
   const attemptBonuses: Record<number, number> = {
-    1: 5,
-    2: 4,
-    3: 3,
-    4: 2,
-    5: 1,
-    6: 1,
+    1: settingsMap.attemptBonus1 || 5,
+    2: settingsMap.attemptBonus2 || 4,
+    3: settingsMap.attemptBonus3 || 3,
+    4: settingsMap.attemptBonus4 || 2,
+    5: settingsMap.attemptBonus5 || 1,
+    6: settingsMap.attemptBonus6 || 1,
   };
 
   points += attemptBonuses[attempts] || 0;
 
   // Streak bonuses (cumulative)
   if (streakDays >= 30) {
-    points += 10;
+    points += settingsMap.streakBonus30Day || 10;
   } else if (streakDays >= 7) {
-    points += 5;
+    points += settingsMap.streakBonus7Day || 5;
   } else if (streakDays >= 3) {
-    points += 2;
+    points += settingsMap.streakBonus3Day || 2;
   }
 
   return points;

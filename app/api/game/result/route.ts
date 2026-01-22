@@ -23,11 +23,15 @@ export async function GET() {
         },
       },
       include: {
-        word: true,
+        word: {
+          include: {
+            answerWord: true,
+          },
+        },
       },
     });
 
-    if (!game) {
+    if (!game || !game.word.answerWord) {
       return NextResponse.json({ error: "No game found" }, { status: 404 });
     }
 
@@ -45,7 +49,7 @@ export async function GET() {
         solved: game.solved,
         points: game.points,
       },
-      word: game.word.word,
+      word: game.word.answerWord.word, // Word is safe to return after game completion
       dayNumber,
     });
   } catch (error) {

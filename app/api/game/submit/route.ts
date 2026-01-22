@@ -65,7 +65,7 @@ export async function POST(request: Request) {
       });
 
       const streakDays = streak?.currentStreak || 0;
-      const points = calculatePoints(attempts, solved, streakDays);
+      const points = await calculatePoints(attempts, solved, streakDays);
 
       const updatedGame = await prisma.game.update({
         where: { id: existingGame.id },
@@ -105,7 +105,7 @@ export async function POST(request: Request) {
       });
 
       const streakDays = streak?.currentStreak || 0;
-      const points = calculatePoints(attempts, solved, streakDays);
+      const points = await calculatePoints(attempts, solved, streakDays);
 
       const newGame = await prisma.game.create({
         data: {

@@ -16,7 +16,7 @@ async function main() {
       email: "admin@example.com",
       name: "Admin",
       passwordHash: adminPassword,
-      role: "ADMIN" as any,
+      role: "ADMIN",
     },
   });
 
@@ -31,11 +31,48 @@ async function main() {
       email: "user@example.com",
       name: "Test User",
       passwordHash: userPassword,
-      role: "USER" as any,
+      role: "USER",
     },
   });
 
   console.log("Created test user:", user.email);
+
+  // Seed answer words (use VALID_WORDS as initial answer words)
+  console.log("Seeding answer words...");
+  let answerWordCount = 0;
+  for (const word of VALID_WORDS) {
+    try {
+      await prisma.answerWord.upsert({
+        where: { word },
+        update: {},
+        create: {
+          word,
+          source: "supplemental",
+        },
+      });
+      answerWordCount++;
+    } catch (error) {
+      // Skip duplicates
+    }
+  }
+  console.log(`Seeded ${answerWordCount} answer words`);
+
+  // Seed validation words (use VALID_WORDS as initial validation words)
+  console.log("Seeding validation words...");
+  let validationWordCount = 0;
+  for (const word of VALID_WORDS) {
+    try {
+      await prisma.validationWord.upsert({
+        where: { word },
+        update: {},
+        create: { word },
+      });
+      validationWordCount++;
+    } catch (error) {
+      // Skip duplicates
+    }
+  }
+  console.log(`Seeded ${validationWordCount} validation words`);
 
   // Set today's word
   const today = new Date();
@@ -43,11 +80,25 @@ async function main() {
   
   const todayWord = VALID_WORDS[Math.floor(Math.random() * VALID_WORDS.length)];
   
+  // Get or create answer word
+  let answerWord = await prisma.answerWord.findUnique({
+    where: { word: todayWord },
+  });
+
+  if (!answerWord) {
+    answerWord = await prisma.answerWord.create({
+      data: {
+        word: todayWord,
+        source: "supplemental",
+      },
+    });
+  }
+  
   await prisma.word.upsert({
     where: { dateUsed: today },
     update: {},
     create: {
-      word: todayWord,
+      answerWordId: answerWord.id,
       dateUsed: today,
       createdBy: admin.id,
     },
