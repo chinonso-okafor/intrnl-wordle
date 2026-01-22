@@ -1,0 +1,13 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Markdown files as documentation (exclude from language stats)
+*.md linguist-documentation
+
+# Generated files (exclude from language stats)
+package-lock.json linguist-generated=true
+*.db linguist-generated=true
+*.db-journal linguist-generated=true
+
+# Prisma schema files
+*.prisma linguist-language=Prisma
