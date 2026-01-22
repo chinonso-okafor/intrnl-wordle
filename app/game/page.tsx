@@ -28,27 +28,44 @@ export default function GamePage() {
     if (status === "authenticated") {
       loadGame();
     }
+    // If status is "loading", do nothing - wait for auth to resolve
   }, [status, router]);
 
   const loadGame = async () => {
     try {
       const response = await fetch("/api/game/current");
-      if (response.ok) {
-        const data = await response.json();
-        setWordId(data.wordId);
+      if (!response.ok) {
+        if (response.status === 401) {
+          router.push("/login");
+          return;
+        }
+        const errorData = await response.json().catch(() => ({}));
+        toast.error(errorData.error || "Failed to load game");
+        return;
+      }
+      
+      const data = await response.json();
+      
+      if (!data.wordId) {
+        toast.error("No word available for today");
+        return;
+      }
+      
+      setWordId(data.wordId);
+      
+      if (data.game) {
+        const guessList = data.game.guesses || [];
+        setGuesses(guessList);
         
-        if (data.game) {
-          const guessList = data.game.guesses || [];
-          setGuesses(guessList);
-          
-          if (data.game.solved) {
-            setGameState("won");
-          } else if (data.game.attempts >= 6) {
-            setGameState("lost");
-          }
-          
-          // Get evaluations from server for existing guesses
-          if (guessList.length > 0) {
+        if (data.game.solved) {
+          setGameState("won");
+        } else if (data.game.attempts >= 6) {
+          setGameState("lost");
+        }
+        
+        // Get evaluations from server for existing guesses
+        if (guessList.length > 0) {
+          try {
             const evalResponse = await fetch("/api/game/evaluate", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -69,11 +86,15 @@ export default function GamePage() {
               });
               updateLetterStates(fullEvals);
             }
+          } catch (evalError) {
+            console.error("Error loading evaluations:", evalError);
+            // Don't show error toast for evaluation errors, just log
           }
         }
       }
     } catch (error) {
-      toast.error("Failed to load game");
+      console.error("Error loading game:", error);
+      toast.error("Failed to load game. Please try refreshing the page.");
     }
   };
 
@@ -146,10 +167,10 @@ export default function GamePage() {
         letter,
         state: data.evaluation[i],
       }));
-      updateLetterStates([...evaluations.map((eval, idx) => 
+      updateLetterStates([...evaluations.map((evalState, idx) => 
         guesses[idx].split("").map((letter, i) => ({
           letter,
-          state: eval[i],
+          state: evalState[i],
         }))
       ), evaluation]);
 
@@ -193,12 +214,33 @@ export default function GamePage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyPress, handleEnter, handleBackspace]);
 
+  // Show loading state while checking authentication
   if (status === "loading") {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="text-lg font-medium">Loading...</div>
+        </div>
+      </div>
+    );
   }
 
+  // If not authenticated, redirect (this should have happened in useEffect, but show message just in case)
+  if (status === "unauthenticated") {
+    // The useEffect should handle redirect, but show message while it happens
+    return null; // Return null to prevent flash of content
+  }
+
+  // If authenticated but wordId not loaded yet, show loading
   if (!wordId) {
-    return <div className="flex items-center justify-center min-h-screen">Loading game...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="text-lg font-medium">Loading game...</div>
+          <div className="mt-2 text-sm text-gray-500">Please wait while we set up your game.</div>
+        </div>
+      </div>
+    );
   }
 
   return (

@@ -35,7 +35,8 @@ export async function POST(request: Request) {
     const targetWord = word.answerWord.word.toUpperCase();
     
     // Validate guess server-side
-    const { isValidWord } = await import("@/lib/validation-words");
+    const { initializeValidationWords, isValidWord } = await import("@/lib/validation-words");
+    await initializeValidationWords(); // Ensure validation set is loaded
     if (!isValidWord(guess)) {
       return NextResponse.json({ error: "Not a valid word" }, { status: 400 });
     }
