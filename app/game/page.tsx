@@ -5,8 +5,8 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { GameBoard } from "@/components/game-board";
 import { Keyboard } from "@/components/keyboard";
-import { evaluateGuess, LetterState, LetterEvaluation } from "@/lib/game";
-import { isValidWord } from "@/lib/words";
+import { LetterState, LetterEvaluation } from "@/lib/game";
+import { isValidWordSync } from "@/lib/words";
 import toast from "react-hot-toast";
 
 export default function GamePage() {
@@ -15,7 +15,7 @@ export default function GamePage() {
   const [currentGuess, setCurrentGuess] = useState("");
   const [guesses, setGuesses] = useState<string[]>([]);
   const [evaluations, setEvaluations] = useState<LetterState[][]>([]);
-  const [targetWord, setTargetWord] = useState("");
+  const [wordId, setWordId] = useState<string | null>(null);
   const [gameState, setGameState] = useState<"playing" | "won" | "lost">("playing");
   const [letterStates, setLetterStates] = useState<Record<string, LetterState>>({});
 
@@ -35,26 +35,41 @@ export default function GamePage() {
       const response = await fetch("/api/game/current");
       if (response.ok) {
         const data = await response.json();
+        setWordId(data.wordId);
+        
         if (data.game) {
-          setGuesses(data.game.guesses || []);
-          setTargetWord(data.word);
+          const guessList = data.game.guesses || [];
+          setGuesses(guessList);
+          
           if (data.game.solved) {
             setGameState("won");
           } else if (data.game.attempts >= 6) {
             setGameState("lost");
           }
-          // Recalculate evaluations
-          const guessList = data.game.guesses || [];
-          const evals = guessList.map((guess: string) =>
-            evaluateGuess(guess, data.word).map((e) => e.state)
-          );
-          setEvaluations(evals);
-          const fullEvals = guessList.map((guess: string) =>
-            evaluateGuess(guess, data.word)
-          );
-          updateLetterStates(fullEvals);
-        } else {
-          setTargetWord(data.word);
+          
+          // Get evaluations from server for existing guesses
+          if (guessList.length > 0) {
+            const evalResponse = await fetch("/api/game/evaluate", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ guesses: guessList }),
+            });
+            
+            if (evalResponse.ok) {
+              const evalData = await evalResponse.json();
+              setEvaluations(evalData.evaluations);
+              
+              // Update letter states from evaluations
+              const fullEvals: LetterEvaluation[][] = guessList.map((guess: string, idx: number) => {
+                const evalStates = evalData.evaluations[idx];
+                return guess.split("").map((letter, i) => ({
+                  letter,
+                  state: evalStates[i],
+                }));
+              });
+              updateLetterStates(fullEvals);
+            }
+          }
         }
       }
     } catch (error) {
@@ -93,25 +108,16 @@ export default function GamePage() {
       return;
     }
 
-    if (!isValidWord(currentGuess)) {
+    // Basic client-side validation (server will validate too)
+    if (!isValidWordSync(currentGuess)) {
       toast.error("Not a valid word");
       return;
     }
 
-    const evaluation = evaluateGuess(currentGuess, targetWord);
-    const newGuesses = [...guesses, currentGuess];
-    const newEvaluations = [...evaluations, evaluation.map((e) => e.state)];
-
-    setGuesses(newGuesses);
-    setEvaluations(newEvaluations);
-    
-    // Reconstruct full evaluations for letter state updates
-    const allFullEvaluations = newGuesses.map((guess) => 
-      evaluateGuess(guess, targetWord)
-    );
-    updateLetterStates(allFullEvaluations);
-
-    const solved = currentGuess.toUpperCase() === targetWord.toUpperCase();
+    if (!wordId) {
+      toast.error("Game not loaded");
+      return;
+    }
 
     try {
       const response = await fetch("/api/game/submit", {
@@ -119,17 +125,35 @@ export default function GamePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           guess: currentGuess,
-          solved,
         }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to submit guess");
+        const errorData = await response.json();
+        toast.error(errorData.error || "Failed to submit guess");
+        return;
       }
 
       const data = await response.json();
+      const newGuesses = [...guesses, currentGuess];
+      const newEvaluations = [...evaluations, data.evaluation];
 
-      if (solved) {
+      setGuesses(newGuesses);
+      setEvaluations(newEvaluations);
+      
+      // Update letter states from evaluation
+      const evaluation: LetterEvaluation[] = currentGuess.split("").map((letter, i) => ({
+        letter,
+        state: data.evaluation[i],
+      }));
+      updateLetterStates([...evaluations.map((eval, idx) => 
+        guesses[idx].split("").map((letter, i) => ({
+          letter,
+          state: eval[i],
+        }))
+      ), evaluation]);
+
+      if (data.solved) {
         setGameState("won");
         toast.success(`Congratulations! You solved it in ${newGuesses.length} tries!`);
         setTimeout(() => {
@@ -137,7 +161,7 @@ export default function GamePage() {
         }, 2000);
       } else if (newGuesses.length >= 6) {
         setGameState("lost");
-        toast.error(`The word was ${targetWord}`);
+        toast.error("Better luck next time!");
         setTimeout(() => {
           router.push("/game/result");
         }, 2000);
@@ -147,7 +171,7 @@ export default function GamePage() {
     } catch (error) {
       toast.error("Failed to submit guess");
     }
-  }, [currentGuess, targetWord, guesses, evaluations, router]);
+  }, [currentGuess, wordId, guesses, evaluations, router]);
 
   const handleBackspace = useCallback(() => {
     if (gameState !== "playing") return;
@@ -173,7 +197,7 @@ export default function GamePage() {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
 
-  if (!targetWord) {
+  if (!wordId) {
     return <div className="flex items-center justify-center min-h-screen">Loading game...</div>;
   }
 

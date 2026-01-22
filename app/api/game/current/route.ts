@@ -18,19 +18,39 @@ export async function GET() {
     // Get or create today's word
     let word = await prisma.word.findUnique({
       where: { dateUsed: today },
+      include: { answerWord: true },
     });
 
     if (!word) {
-      // If no word for today, create one (admin should set this, but fallback)
-      const { VALID_WORDS } = await import("@/lib/words");
-      const randomWord = VALID_WORDS[Math.floor(Math.random() * VALID_WORDS.length)];
+      // If no word for today, try to get a random answer word (admin should set this, but fallback)
+      const { getRandomAnswerWord } = await import("@/lib/answer-words");
+      const randomWord = await getRandomAnswerWord();
       
+      if (!randomWord) {
+        return NextResponse.json({ error: "No answer words available. Please add words via admin panel." }, { status: 500 });
+      }
+
+      // Get or create answer word
+      let answerWord = await prisma.answerWord.findUnique({
+        where: { word: randomWord },
+      });
+
+      if (!answerWord) {
+        answerWord = await prisma.answerWord.create({
+          data: {
+            word: randomWord,
+            source: "supplemental",
+          },
+        });
+      }
+
       word = await prisma.word.create({
         data: {
-          word: randomWord,
+          answerWordId: answerWord.id,
           dateUsed: today,
           createdBy: session.user.id,
         },
+        include: { answerWord: true },
       });
     }
 
