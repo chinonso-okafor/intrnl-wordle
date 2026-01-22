@@ -22,6 +22,9 @@ export default function GameResultPage() {
   const router = useRouter();
   const [result, setResult] = useState<GameResult | null>(null);
   const [copied, setCopied] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [reporting, setReporting] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -64,6 +67,35 @@ export default function GameResultPage() {
     }
   };
 
+  const handleReportWord = async () => {
+    if (!reportReason.trim()) {
+      toast.error("Please provide a reason");
+      return;
+    }
+
+    setReporting(true);
+    try {
+      const response = await fetch("/api/game/report-word", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: reportReason }),
+      });
+
+      if (response.ok) {
+        toast.success("Word reported successfully. Thank you for your feedback!");
+        setShowReportModal(false);
+        setReportReason("");
+      } else {
+        const data = await response.json();
+        toast.error(data.error || "Failed to report word");
+      }
+    } catch (error) {
+      toast.error("Failed to report word");
+    } finally {
+      setReporting(false);
+    }
+  };
+
   if (status === "loading" || !result) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
@@ -99,13 +131,57 @@ export default function GameResultPage() {
             </div>
           )}
 
-          <button
-            onClick={handleShare}
-            className="w-full rounded-md bg-wordle-correct px-4 py-2 font-medium text-white hover:bg-opacity-90"
-          >
-            {copied ? "✓ Copied!" : "Share Results"}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleShare}
+              className="flex-1 rounded-md bg-wordle-correct px-4 py-2 font-medium text-white hover:bg-opacity-90"
+            >
+              {copied ? "✓ Copied!" : "Share Results"}
+            </button>
+            <button
+              onClick={() => setShowReportModal(true)}
+              className="flex-1 rounded-md bg-red-500 px-4 py-2 font-medium text-white hover:bg-red-600"
+            >
+              Report This Word
+            </button>
+          </div>
         </div>
+
+        {showReportModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+              <h3 className="text-xl font-bold mb-4">Report This Word</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Please tell us why you're reporting this word. Your feedback helps improve the game.
+              </p>
+              <textarea
+                value={reportReason}
+                onChange={(e) => setReportReason(e.target.value)}
+                placeholder="e.g., offensive, inappropriate, not a real word..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-md mb-4 min-h-[100px]"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setShowReportModal(false);
+                    setReportReason("");
+                  }}
+                  className="flex-1 rounded-md bg-gray-200 px-4 py-2 font-medium text-gray-700 hover:bg-gray-300"
+                  disabled={reporting}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleReportWord}
+                  className="flex-1 rounded-md bg-red-500 px-4 py-2 font-medium text-white hover:bg-red-600"
+                  disabled={reporting}
+                >
+                  {reporting ? "Submitting..." : "Submit Report"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="flex gap-4">
           <button

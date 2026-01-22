@@ -22,18 +22,41 @@ model User {
 
   games         Game[]
   streaks       Streak?
+  adminActivities AdminActivityLog[]
+  wordReports   WordReport[]
 
   @@map("users")
 }
 
-model Word {
+model AnswerWord {
   id          String   @id @default(cuid())
   word        String   @unique
+  source      String   // "nyt" or "supplemental"
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  dailyWords  Word[]
+
+  @@map("answer_words")
+}
+
+model ValidationWord {
+  id          String   @id @default(cuid())
+  word        String   @unique
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("validation_words")
+}
+
+model Word {
+  id          String   @id @default(cuid())
+  answerWordId String  @map("answer_word_id")
   dateUsed    DateTime @unique @map("date_used")
   createdBy   String   @map("created_by")
   createdAt   DateTime @default(now()) @map("created_at")
 
+  answerWord  AnswerWord @relation(fields: [answerWordId], references: [id])
   games       Game[]
+  reports     WordReport[]
 
   @@map("words")
 }
@@ -50,7 +73,7 @@ model Game {
   createdAt   DateTime @default(now()) @map("created_at")
 
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  word        Word     @relation(fields: [wordId], references: [id])
+  word        Word     @relation(fields: [wordId], references: [id], onDelete: Cascade)
 
   @@unique([userId, date])
   @@index([userId])
@@ -68,4 +91,73 @@ model Streak {
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("streaks")
+}
+
+model AdminActivityLog {
+  id          String   @id @default(cuid())
+  adminId     String   @map("admin_id")
+  action      String   // "set_word", "delete_word", "update_settings", "approve_report", etc.
+  details     String   // JSON string with action details
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  admin       User     @relation(fields: [adminId], references: [id])
+
+  @@index([adminId])
+  @@index([createdAt])
+  @@map("admin_activity_logs")
+}
+
+model WordReport {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  wordId      String   @map("word_id")
+  reason      String
+  status      String   @default("pending") // "pending", "approved", "rejected"
+  reviewedBy  String?  @map("reviewed_by")
+  reviewedAt  DateTime? @map("reviewed_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  word        Word     @relation(fields: [wordId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("word_reports")
+}
+
+model LeaderboardPeriod {
+  id          String   @id @default(cuid())
+  periodType  String   @map("period_type") // "weekly", "monthly", "quarterly", "yearly"
+  startDate   DateTime @map("start_date")
+  endDate     DateTime @map("end_date")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@unique([periodType, startDate])
+  @@index([periodType])
+  @@index([startDate])
+  @@map("leaderboard_periods")
+}
+
+model AppSettings {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String   // JSON string for complex values
+  updatedBy   String?  @map("updated_by")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("app_settings")
+}
+
+model LoginAttempt {
+  id          String   @id @default(cuid())
+  email       String
+  ipAddress   String?  @map("ip_address")
+  success     Boolean  @default(false)
+  lockedUntil DateTime? @map("locked_until")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([email])
+  @@index([createdAt])
+  @@map("login_attempts")
 }

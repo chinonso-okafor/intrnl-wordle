@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { guess, solved } = await request.json();
+    const { guess } = await request.json();
 
     if (!guess || typeof guess !== "string" || guess.length !== 5) {
       return NextResponse.json({ error: "Invalid guess" }, { status: 400 });
@@ -22,14 +22,26 @@ export async function POST(request: Request) {
     const today = new Date(getTodayDate());
     today.setHours(0, 0, 0, 0);
 
-    // Get today's word
+    // Get today's word with answer word
     const word = await prisma.word.findUnique({
       where: { dateUsed: today },
+      include: { answerWord: true },
     });
 
-    if (!word) {
+    if (!word || !word.answerWord) {
       return NextResponse.json({ error: "No word set for today" }, { status: 400 });
     }
+
+    const targetWord = word.answerWord.word.toUpperCase();
+    
+    // Validate guess server-side
+    const { isValidWord } = await import("@/lib/validation-words");
+    if (!isValidWord(guess)) {
+      return NextResponse.json({ error: "Not a valid word" }, { status: 400 });
+    }
+
+    // Check if guess matches target (server-side validation)
+    const solved = guess.toUpperCase() === targetWord;
 
     // Check if user already has a game today
     const existingGame = await prisma.game.findUnique({
@@ -70,11 +82,17 @@ export async function POST(request: Request) {
         await updateStreak(session.user.id as string, today);
       }
 
+      // Return evaluation for the guess (for frontend display)
+      const { evaluateGuess } = await import("@/lib/game");
+      const evaluation = evaluateGuess(guess.toUpperCase(), targetWord);
+
       return NextResponse.json({ 
         game: {
           ...updatedGame,
           guesses: newGuesses,
-        }
+        },
+        evaluation: evaluation.map(e => e.state),
+        solved,
       });
     } else {
       // Create new game
@@ -106,11 +124,17 @@ export async function POST(request: Request) {
         await updateStreak(session.user.id as string, today);
       }
 
+      // Return evaluation for the guess (for frontend display)
+      const { evaluateGuess } = await import("@/lib/game");
+      const evaluation = evaluateGuess(guess.toUpperCase(), targetWord);
+
       return NextResponse.json({ 
         game: {
           ...newGame,
           guesses: newGuesses,
-        }
+        },
+        evaluation: evaluation.map(e => e.state),
+        solved,
       });
     }
   } catch (error) {

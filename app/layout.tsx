@@ -8,7 +8,7 @@ import { Nav } from "@/components/nav";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Optimizer Wordle",
+  title: "Optimizer+ Wordle",
   description: "Internal Wordle game for your team",
 };
 
