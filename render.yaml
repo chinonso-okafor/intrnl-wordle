@@ -3,7 +3,7 @@ services:
     name: optimizer-wordle
     env: node
     plan: free
-    buildCommand: npm install && npx prisma generate && npm run build
+    buildCommand: NODE_ENV=development npm install && npx prisma generate && NODE_ENV=production npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
