@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -65,7 +65,7 @@ model Game {
   id          String   @id @default(cuid())
   userId      String   @map("user_id")
   wordId      String   @map("word_id")
-  date        DateTime // SQLite doesn't support @db.Date
+  date        DateTime
   guesses     String   // JSON string array: ["WORD1", "WORD2"]
   solved      Boolean  @default(false)
   attempts    Int
