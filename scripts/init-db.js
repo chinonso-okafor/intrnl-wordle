@@ -1,5 +1,7 @@
 const { execSync } = require("child_process")
 const { PrismaClient } = require("@prisma/client")
+const fs = require("fs")
+const path = require("path")
 
 const prisma = new PrismaClient()
 
@@ -15,25 +17,44 @@ async function checkIfSeeded() {
   }
 }
 
+async function checkIfTablesExist() {
+  try {
+    // Try to query a table to see if schema exists
+    await prisma.$queryRaw`SELECT 1 FROM users LIMIT 1`
+    return true
+  } catch (error) {
+    return false
+  }
+}
+
 async function runMigrations() {
   console.log("Setting up database schema...")
+  
+  // Check if migrations directory exists
+  const migrationsDir = path.join(process.cwd(), "prisma", "migrations")
+  const hasMigrations = fs.existsSync(migrationsDir) && fs.readdirSync(migrationsDir).length > 0
+
   try {
-    // Try migrate deploy first (for production with migrations)
-    try {
+    if (hasMigrations) {
+      console.log("Migrations found, deploying...")
       execSync("npx prisma migrate deploy", {
-        stdio: "pipe",
+        stdio: "inherit",
         env: { ...process.env },
       })
       console.log("✓ Migrations deployed")
-      return
-    } catch (migrateError) {
-      // If migrate deploy fails (no migrations), use db push
+    } else {
       console.log("No migrations found, using db push...")
       execSync("npx prisma db push --accept-data-loss", {
         stdio: "inherit",
         env: { ...process.env },
       })
       console.log("✓ Database schema synced")
+    }
+
+    // Verify tables were created
+    const tablesExist = await checkIfTablesExist()
+    if (!tablesExist) {
+      throw new Error("Database schema setup completed but tables do not exist")
     }
   } catch (error) {
     console.error("Failed to set up database schema:", error)
