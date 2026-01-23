@@ -9,12 +9,14 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "start:prod": "node scripts/init-db.js && next start",
     "lint": "next lint",
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
-    "db:migrate": "prisma migrate dev"
+    "db:migrate": "prisma migrate dev",
+    "db:init": "node scripts/init-db.js"
   },
   "dependencies": {
     "next": "^14.2.0",
