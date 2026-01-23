@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -17,7 +17,7 @@ interface LeaderboardEntry {
 type SortField = "rank" | "name" | "totalPoints" | "gamesPlayed" | "winRate" | "currentStreak";
 type SortDirection = "asc" | "desc";
 
-export default function LeaderboardPage() {
+function LeaderboardContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -26,6 +26,21 @@ export default function LeaderboardPage() {
   const [loading, setLoading] = useState(true);
   const [sortField, setSortField] = useState<SortField>("rank");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+
+  const loadLeaderboard = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/leaderboard?period=${period}`);
+      if (response.ok) {
+        const data = await response.json();
+        setLeaderboard(data.leaderboard);
+      }
+    } catch (error) {
+      console.error("Failed to load leaderboard");
+    } finally {
+      setLoading(false);
+    }
+  }, [period]);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -43,7 +58,7 @@ export default function LeaderboardPage() {
 
       return () => clearInterval(interval);
     }
-  }, [status, router, period]);
+  }, [status, router, loadLeaderboard]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -83,21 +98,6 @@ export default function LeaderboardPage() {
       return <span className="text-gray-400">↕</span>;
     }
     return sortDirection === "asc" ? <span>↑</span> : <span>↓</span>;
-  };
-
-  const loadLeaderboard = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(`/api/leaderboard?period=${period}`);
-      if (response.ok) {
-        const data = await response.json();
-        setLeaderboard(data.leaderboard);
-      }
-    } catch (error) {
-      console.error("Failed to load leaderboard");
-    } finally {
-      setLoading(false);
-    }
   };
 
   const periods = [
@@ -246,5 +246,13 @@ export default function LeaderboardPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LeaderboardPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+      <LeaderboardContent />
+    </Suspense>
   );
 }
