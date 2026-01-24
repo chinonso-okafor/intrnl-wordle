@@ -18,9 +18,13 @@ export async function initializeValidationWords(): Promise<Set<string>> {
   const { initializeAnswerWords } = await import("./answer-words");
   const answerSet = await initializeAnswerWords();
 
+  // Also include the legacy hardcoded list as a base to ensure common words are never missed
+  const { VALID_WORDS } = await import("./words");
+
   validationWordsSet = new Set([
     ...validationWords.map((vw) => vw.word.toUpperCase()),
     ...Array.from(answerSet),
+    ...VALID_WORDS.map((w) => w.toUpperCase()),
   ]);
 
   return validationWordsSet;

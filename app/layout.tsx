@@ -18,12 +18,27 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
+    <html lang="en" suppressHydrationWarning className="overflow-x-hidden">
+      <body className={`${inter.className} overflow-x-hidden`}>
         <Providers>
           <Nav />
-          <main className="min-h-screen bg-wordle-background">{children}</main>
-          <Toaster position="top-center" />
+          <main className="min-h-screen bg-wordle-background dark:bg-gray-900">{children}</main>
+          <Toaster 
+            position="top-center"
+            toastOptions={{
+              className: "dark:bg-gray-800 dark:text-white",
+              duration: 4000,
+              success: {
+                duration: 3000,
+              },
+              error: {
+                duration: 5000,
+              },
+            }}
+            containerStyle={{
+              top: 80,
+            }}
+          />
         </Providers>
       </body>
     </html>

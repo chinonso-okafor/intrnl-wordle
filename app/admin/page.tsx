@@ -16,6 +16,7 @@ interface User {
   name: string;
   email: string;
   role: string;
+  createdAt: string;
 }
 
 interface WordStats {
@@ -62,6 +63,12 @@ interface Settings {
   featureLeaderboard: boolean;
 }
 
+interface TodayWord {
+  todayWord: string;
+  date: string;
+  source: string;
+}
+
 export default function AdminPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -72,6 +79,7 @@ export default function AdminPage() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [settings, setSettings] = useState<Settings | null>(null);
+  const [todayWord, setTodayWord] = useState<TodayWord | null>(null);
   const [newWord, setNewWord] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
   const [importFile, setImportFile] = useState<File | null>(null);
@@ -96,6 +104,7 @@ export default function AdminPage() {
     if (activeTab === "words") {
       loadWords();
       loadWordStats();
+      loadTodayWord();
     } else if (activeTab === "users") {
       loadUsers();
     } else if (activeTab === "activity") {
@@ -129,9 +138,36 @@ export default function AdminPage() {
       if (response.ok) {
         const data = await response.json();
         setUsers(data.users);
+      } else {
+        console.error("Failed to load users: Non-OK response");
       }
     } catch (error) {
-      console.error("Failed to load users");
+      console.error("Failed to load users: Network error", error);
+      // Don't re-throw - let caller decide if they want to handle it
+    }
+  };
+
+  const handleDeleteUser = async (userId: string, userName: string) => {
+    if (!confirm(`Are you sure you want to delete user "${userName}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    toast.dismiss();
+    try {
+      const response = await fetch(`/api/admin/users?id=${userId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        toast.success("User deleted successfully");
+        // Reload to ensure consistency
+        await loadUsers();
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.error || "Failed to delete user");
+      }
+    } catch (error) {
+      toast.error("Failed to delete user");
     }
   };
 
@@ -144,6 +180,21 @@ export default function AdminPage() {
       }
     } catch (error) {
       console.error("Failed to load word stats");
+    }
+  };
+
+  const loadTodayWord = async () => {
+    try {
+      const response = await fetch("/api/admin/today-word");
+      if (response.ok) {
+        const data = await response.json();
+        setTodayWord(data);
+      } else {
+        setTodayWord(null);
+      }
+    } catch (error) {
+      console.error("Failed to load today's word");
+      setTodayWord(null);
     }
   };
 
@@ -184,6 +235,7 @@ export default function AdminPage() {
   };
 
   const handleExportWords = async (type: "answer" | "validation") => {
+    toast.dismiss();
     try {
       const response = await fetch(`/api/admin/words/export?type=${type}`);
       if (response.ok) {
@@ -197,6 +249,8 @@ export default function AdminPage() {
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
         toast.success("Words exported successfully");
+      } else {
+        toast.error("Failed to export words");
       }
     } catch (error) {
       toast.error("Failed to export words");
@@ -209,6 +263,7 @@ export default function AdminPage() {
       return;
     }
 
+    toast.dismiss();
     const formData = new FormData();
     formData.append("file", importFile);
     formData.append("type", importType);
@@ -223,7 +278,8 @@ export default function AdminPage() {
         const data = await response.json();
         toast.success(`Imported ${data.imported} words. ${data.skipped} skipped.`);
         setImportFile(null);
-        loadWordStats();
+        await loadWordStats();
+        await loadTodayWord();
       } else {
         const errorData = await response.json();
         toast.error(errorData.error || "Failed to import words");
@@ -234,6 +290,7 @@ export default function AdminPage() {
   };
 
   const handleProcessReport = async (reportId: string, action: "approve" | "reject" | "remove") => {
+    toast.dismiss();
     try {
       const response = await fetch("/api/admin/reports", {
         method: "PUT",
@@ -243,8 +300,8 @@ export default function AdminPage() {
 
       if (response.ok) {
         toast.success(`Report ${action}d successfully`);
-        loadReports();
-        loadWordStats();
+        await loadReports();
+        await loadWordStats();
       } else {
         toast.error("Failed to process report");
       }
@@ -256,6 +313,7 @@ export default function AdminPage() {
   const handleSaveSettings = async () => {
     if (!settings) return;
 
+    toast.dismiss();
     try {
       const response = await fetch("/api/admin/settings", {
         method: "PUT",
@@ -265,6 +323,7 @@ export default function AdminPage() {
 
       if (response.ok) {
         toast.success("Settings saved successfully");
+        await loadSettings();
       } else {
         toast.error("Failed to save settings");
       }
@@ -284,6 +343,7 @@ export default function AdminPage() {
       return;
     }
 
+    toast.dismiss();
     try {
       const response = await fetch("/api/admin/words", {
         method: "POST",
@@ -298,7 +358,8 @@ export default function AdminPage() {
         toast.success("Word set successfully");
         setNewWord("");
         setSelectedDate("");
-        loadWords();
+        await loadWords();
+        await loadTodayWord();
       } else {
         const data = await response.json();
         toast.error(data.error || "Failed to set word");
@@ -336,67 +397,67 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 max-w-full overflow-x-hidden">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6">Admin Panel</h1>
+        <h1 className="text-3xl font-bold mb-6 text-wordle-text dark:text-white">Admin Panel</h1>
 
-        <div className="flex gap-2 mb-6 border-b flex-wrap">
+        <div className="flex gap-2 mb-6 border-b border-gray-200 dark:border-gray-700 flex-wrap">
           <button
             onClick={() => setActiveTab("words")}
-            className={`px-4 py-2 font-medium ${
+            className={`px-4 py-2 font-medium transition-colors ${
               activeTab === "words"
-                ? "border-b-2 border-wordle-correct text-wordle-correct"
-                : "text-gray-600"
+                ? "border-b-2 border-wordle-correct text-wordle-correct dark:text-wordle-correct"
+                : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
             }`}
           >
             Word Management
           </button>
           <button
             onClick={() => setActiveTab("users")}
-            className={`px-4 py-2 font-medium ${
+            className={`px-4 py-2 font-medium transition-colors ${
               activeTab === "users"
-                ? "border-b-2 border-wordle-correct text-wordle-correct"
-                : "text-gray-600"
+                ? "border-b-2 border-wordle-correct text-wordle-correct dark:text-wordle-correct"
+                : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
             }`}
           >
             User Management
           </button>
           <button
             onClick={() => setActiveTab("moderation")}
-            className={`px-4 py-2 font-medium ${
+            className={`px-4 py-2 font-medium transition-colors ${
               activeTab === "moderation"
-                ? "border-b-2 border-wordle-correct text-wordle-correct"
-                : "text-gray-600"
+                ? "border-b-2 border-wordle-correct text-wordle-correct dark:text-wordle-correct"
+                : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
             }`}
           >
             Moderation
           </button>
           <button
             onClick={() => setActiveTab("settings")}
-            className={`px-4 py-2 font-medium ${
+            className={`px-4 py-2 font-medium transition-colors ${
               activeTab === "settings"
-                ? "border-b-2 border-wordle-correct text-wordle-correct"
-                : "text-gray-600"
+                ? "border-b-2 border-wordle-correct text-wordle-correct dark:text-wordle-correct"
+                : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
             }`}
           >
             Settings
           </button>
           <button
             onClick={() => setActiveTab("activity")}
-            className={`px-4 py-2 font-medium ${
+            className={`px-4 py-2 font-medium transition-colors ${
               activeTab === "activity"
-                ? "border-b-2 border-wordle-correct text-wordle-correct"
-                : "text-gray-600"
+                ? "border-b-2 border-wordle-correct text-wordle-correct dark:text-wordle-correct"
+                : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
             }`}
           >
             Activity Log
           </button>
           <button
             onClick={() => setActiveTab("stats")}
-            className={`px-4 py-2 font-medium ${
+            className={`px-4 py-2 font-medium transition-colors ${
               activeTab === "stats"
-                ? "border-b-2 border-wordle-correct text-wordle-correct"
-                : "text-gray-600"
+                ? "border-b-2 border-wordle-correct text-wordle-correct dark:text-wordle-correct"
+                : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
             }`}
           >
             Statistics
@@ -405,11 +466,25 @@ export default function AdminPage() {
 
         {activeTab === "words" && (
           <div className="space-y-6">
+            {todayWord && (
+              <div className="bg-blue-100 dark:bg-blue-900/30 border-l-4 border-blue-500 dark:border-blue-400 p-4 rounded">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-blue-800 dark:text-blue-300">Today's Word</p>
+                    <p className="text-2xl font-bold text-blue-900 dark:text-blue-200 mt-1">{todayWord.todayWord}</p>
+                    <p className="text-xs text-blue-700 dark:text-blue-400 mt-1">
+                      Source: {todayWord.source} • Date: {new Date(todayWord.date).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             {wordStats && wordStats.exhaustionWarning && (
-              <div className="bg-yellow-100 border-l-4 border-yellow-500 p-4 rounded">
+              <div className="bg-yellow-100 dark:bg-yellow-900/30 border-l-4 border-yellow-500 dark:border-yellow-400 p-4 rounded">
                 <div className="flex">
                   <div className="ml-3">
-                    <p className="text-sm text-yellow-700">
+                    <p className="text-sm text-yellow-700 dark:text-yellow-300">
                       <strong>Warning:</strong> Only {wordStats.availableWords} answer words remaining!
                       Please add more words to the answer bank.
                     </p>
@@ -419,24 +494,24 @@ export default function AdminPage() {
             )}
 
             {wordStats && (
-              <div className="bg-white rounded-lg p-6 shadow">
-                <h2 className="text-xl font-bold mb-4">Word Statistics</h2>
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow">
+                <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Word Statistics</h2>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
-                    <p className="text-sm text-gray-500">Total Answer Words</p>
-                    <p className="text-2xl font-bold">{wordStats.totalAnswerWords}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Total Answer Words</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{wordStats.totalAnswerWords}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">NYT Words</p>
-                    <p className="text-2xl font-bold">{wordStats.nytWords}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">NYT Words</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{wordStats.nytWords}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Supplemental</p>
-                    <p className="text-2xl font-bold">{wordStats.supplementalWords}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Supplemental</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{wordStats.supplementalWords}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Available</p>
-                    <p className={`text-2xl font-bold ${wordStats.exhaustionWarning ? "text-red-600" : ""}`}>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Available</p>
+                    <p className={`text-2xl font-bold ${wordStats.exhaustionWarning ? "text-red-600 dark:text-red-400" : "text-gray-900 dark:text-white"}`}>
                       {wordStats.availableWords}
                     </p>
                   </div>
@@ -444,8 +519,8 @@ export default function AdminPage() {
               </div>
             )}
 
-            <div className="bg-white rounded-lg p-6 shadow">
-              <h2 className="text-xl font-bold mb-4">Set Daily Word</h2>
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow">
+              <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Set Daily Word</h2>
               <div className="flex gap-4 flex-wrap">
                 <input
                   type="text"
@@ -453,36 +528,36 @@ export default function AdminPage() {
                   onChange={(e) => setNewWord(e.target.value.toUpperCase())}
                   placeholder="5-letter word"
                   maxLength={5}
-                  className="px-4 py-2 border border-gray-300 rounded-md"
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-wordle-correct focus:border-wordle-correct"
                 />
                 <input
                   type="date"
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
-                  className="px-4 py-2 border border-gray-300 rounded-md"
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-wordle-correct focus:border-wordle-correct"
                 />
                 <button
                   onClick={handleSetWord}
-                  className="px-4 py-2 bg-wordle-correct text-white rounded-md hover:bg-opacity-90"
+                  className="px-4 py-2 bg-wordle-correct text-white rounded-md hover:bg-opacity-90 transition-colors"
                 >
                   Set Word
                 </button>
               </div>
             </div>
 
-            <div className="bg-white rounded-lg p-6 shadow">
-              <h2 className="text-xl font-bold mb-4">Import/Export Words</h2>
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow">
+              <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Import/Export Words</h2>
               <div className="space-y-4">
                 <div className="flex gap-4 flex-wrap">
                   <button
                     onClick={() => handleExportWords("answer")}
-                    className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                    className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
                   >
                     Export Answer Words
                   </button>
                   <button
                     onClick={() => handleExportWords("validation")}
-                    className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                    className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
                   >
                     Export Validation Words
                   </button>
@@ -496,6 +571,7 @@ export default function AdminPage() {
                           const data = await response.json();
                           toast.success(`Fetched ${data.fetched} NYT words. Imported ${data.imported}.`);
                           loadWordStats();
+                          loadTodayWord();
                         } else {
                           const errorData = await response.json();
                           toast.error(errorData.error || "Failed to fetch NYT words");
@@ -504,36 +580,36 @@ export default function AdminPage() {
                         toast.error("Failed to fetch NYT words");
                       }
                     }}
-                    className="px-4 py-2 bg-purple-500 text-white rounded-md hover:bg-purple-600"
+                    className="px-4 py-2 bg-purple-500 text-white rounded-md hover:bg-purple-600 transition-colors"
                   >
                     Fetch NYT Words
                   </button>
                 </div>
                 <div className="flex gap-4 items-end flex-wrap">
                   <div>
-                    <label className="block text-sm font-medium mb-2">Import Type</label>
+                    <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Import Type</label>
                     <select
                       value={importType}
                       onChange={(e) => setImportType(e.target.value as "answer" | "validation")}
-                      className="px-4 py-2 border border-gray-300 rounded-md"
+                      className="px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-wordle-correct focus:border-wordle-correct"
                     >
                       <option value="answer">Answer Words</option>
                       <option value="validation">Validation Words</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2">CSV File</label>
+                    <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">CSV File</label>
                     <input
                       type="file"
                       accept=".csv"
                       onChange={(e) => setImportFile(e.target.files?.[0] || null)}
-                      className="px-4 py-2 border border-gray-300 rounded-md"
+                      className="px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-wordle-correct file:text-white hover:file:bg-opacity-90"
                     />
                   </div>
                   <button
                     onClick={handleImportWords}
                     disabled={!importFile}
-                    className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 disabled:opacity-50"
+                    className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 disabled:opacity-50 transition-colors"
                   >
                     Import Words
                   </button>
@@ -541,36 +617,36 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-              <h2 className="text-xl font-bold p-6 border-b">Word History</h2>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+              <h2 className="text-xl font-bold p-6 border-b border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">Word History</h2>
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                  <thead className="bg-gray-50 dark:bg-gray-700">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
                         Word
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
                         Date
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
                         Actions
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                     {words.map((word) => (
-                      <tr key={word.id}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <tr key={word.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                           {word.word}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
                           {new Date(word.dateUsed).toLocaleDateString()}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                           <button
                             onClick={() => handleDeleteWord(word.id)}
-                            className="text-red-600 hover:text-red-800"
+                            className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 transition-colors"
                           >
                             Delete
                           </button>
@@ -585,47 +661,172 @@ export default function AdminPage() {
         )}
 
         {activeTab === "users" && (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
-            <h2 className="text-xl font-bold p-6 border-b">All Users</h2>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Name
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Email
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+          <div className="space-y-6">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow">
+              <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Add New User</h2>
+              <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    toast.dismiss();
+                    const form = e.currentTarget;
+                    const formData = new FormData(form);
+                    const name = formData.get("name") as string;
+                    const email = formData.get("email") as string;
+                    const password = formData.get("password") as string;
+                    const role = formData.get("role") as string;
+
+                    try {
+                      const response = await fetch("/api/admin/users", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ name, email, password, role }),
+                      });
+
+                      const data = await response.json();
+
+                      if (!response.ok) {
+                        toast.error(data.error || "Failed to create user");
+                        return;
+                      }
+
+                      // Success
+                      toast.success("User created successfully");
+                      form.reset();
+                      
+                      // Refresh user list from server to ensure we have the definitive list
+                      await loadUsers();
+                    } catch (error) {
+                      console.error("Creation error:", error);
+                      toast.error("A network error occurred");
+                    }
+                  }}
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
+              >
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                    Name
+                  </label>
+                  <input
+                    id="name"
+                    name="name"
+                    type="text"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-wordle-correct focus:border-wordle-correct"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                    Email
+                  </label>
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-wordle-correct focus:border-wordle-correct"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                    Password
+                  </label>
+                  <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    required
+                    minLength={6}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-wordle-correct focus:border-wordle-correct"
+                  />
+                </div>
+                <div className="flex items-end">
+                  <div className="w-full">
+                    <label htmlFor="role" className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
                       Role
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {users.map((user) => (
-                    <tr key={user.id}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        {user.name}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {user.email}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <span
-                          className={`px-2 py-1 rounded ${
-                            user.role === "ADMIN"
-                              ? "bg-red-100 text-red-800"
-                              : "bg-gray-100 text-gray-800"
-                          }`}
-                        >
-                          {user.role}
-                        </span>
-                      </td>
+                    </label>
+                    <select
+                      id="role"
+                      name="role"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-wordle-correct focus:border-wordle-correct"
+                    >
+                      <option value="USER">User</option>
+                      <option value="ADMIN">Admin</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="md:col-span-2 lg:col-span-4">
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-wordle-correct text-white rounded-md hover:bg-opacity-90 transition-colors"
+                  >
+                    Add User
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+              <h2 className="text-xl font-bold p-6 border-b border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
+                All Users
+              </h2>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                  <thead className="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                        Name
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                        Email
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                        Role
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                        Created
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                        Actions
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    {users.map((user) => (
+                      <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                          {user.name}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                          {user.email}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <span
+                            className={`px-2 py-1 rounded ${
+                              user.role === "ADMIN"
+                                ? "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300"
+                                : "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300"
+                            }`}
+                          >
+                            {user.role}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                          {new Date(user.createdAt).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <button
+                            onClick={() => handleDeleteUser(user.id, user.name)}
+                            className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 transition-colors"
+                            aria-label={`Delete user ${user.name}`}
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}

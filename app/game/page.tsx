@@ -244,9 +244,9 @@ export default function GamePage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex flex-col items-center">
-        <h1 className="text-3xl font-bold mb-8">Daily Wordle</h1>
+    <div className="container mx-auto px-4 py-8 max-w-full overflow-x-hidden">
+      <div className="flex flex-col items-center max-w-full">
+        <h1 className="text-3xl font-bold mb-8 text-wordle-text dark:text-white">Daily Wordle</h1>
         <GameBoard
           guesses={guesses}
           evaluations={evaluations}

@@ -40,17 +40,17 @@ export function Keyboard({
   };
 
   return (
-    <div className="flex flex-col gap-2 mt-8">
+    <div className="flex flex-col gap-2 mt-8 w-full max-w-full px-2">
       {KEYBOARD_LAYOUT.map((row, rowIndex) => (
-        <div key={rowIndex} className="flex gap-1 justify-center">
+        <div key={rowIndex} className="flex gap-1 justify-center flex-wrap">
           {row.map((key) => (
             <button
               key={key}
               onClick={() => handleKeyClick(key)}
-              className={`px-3 py-3 rounded font-semibold text-sm ${
+              className={`px-2 sm:px-3 py-3 rounded font-semibold text-xs sm:text-sm ${
                 key === "ENTER" || key === "BACKSPACE"
-                  ? "bg-gray-400 hover:bg-gray-500 text-white min-w-[60px]"
-                  : `min-w-[40px] ${getKeyColor(key)}`
+                  ? "bg-gray-400 hover:bg-gray-500 text-white min-w-[50px] sm:min-w-[60px]"
+                  : `min-w-[32px] sm:min-w-[40px] ${getKeyColor(key)}`
               }`}
             >
               {key === "BACKSPACE" ? "⌫" : key}

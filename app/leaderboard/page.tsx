@@ -113,9 +113,9 @@ function LeaderboardContent() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 max-w-full overflow-x-hidden">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6">Leaderboard</h1>
+        <h1 className="text-3xl font-bold mb-6 text-wordle-text dark:text-white">Leaderboard</h1>
 
         <div className="flex gap-2 mb-6 flex-wrap">
           {periods.map((p) => (

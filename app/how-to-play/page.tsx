@@ -4,9 +4,9 @@ import { Tile } from "@/components/how-to-play-tile";
 
 export default function HowToPlayPage() {
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 max-w-full overflow-x-hidden">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8">How to Play</h1>
+        <h1 className="text-3xl font-bold mb-8 text-wordle-text dark:text-white">How to Play</h1>
 
         <div className="space-y-8">
           <section className="bg-white rounded-lg p-6 shadow">
@@ -140,25 +140,25 @@ export default function HowToPlayPage() {
                   <Tile letter="L" state="absent" />
                   <Tile letter="I" state="absent" />
                   <Tile letter="G" state="absent" />
-                  <Tile letter="H" state="absent" />
+                  <Tile letter="H" state="present" />
                   <Tile letter="T" state="correct" />
                 </div>
                 <p className="text-sm text-gray-600">
-                  "T" is in the correct position (last)! "L", "I", "G", "H" are not in the word.
+                  "T" is in the correct position (last)! "H" is in the word but in a different position. "L", "I", "G" are not in the word.
                 </p>
               </div>
 
               <div>
                 <p className="font-semibold mb-2">Guess 3: "HEART"</p>
                 <div className="flex gap-2 mb-2">
-                  <Tile letter="H" state="absent" />
+                  <Tile letter="H" state="present" />
                   <Tile letter="E" state="present" />
                   <Tile letter="A" state="present" />
                   <Tile letter="R" state="absent" />
                   <Tile letter="T" state="correct" />
                 </div>
                 <p className="text-sm text-gray-600">
-                  "E" and "A" are in the word but in wrong positions. "T" is still correct.
+                  "H", "E", and "A" are in the word but in wrong positions. "T" is still correct. "R" is not in the word.
                 </p>
               </div>
 
@@ -166,13 +166,13 @@ export default function HowToPlayPage() {
                 <p className="font-semibold mb-2">Guess 4: "WHEAT"</p>
                 <div className="flex gap-2 mb-2">
                   <Tile letter="W" state="correct" />
-                  <Tile letter="H" state="absent" />
+                  <Tile letter="H" state="correct" />
                   <Tile letter="E" state="correct" />
                   <Tile letter="A" state="correct" />
                   <Tile letter="T" state="correct" />
                 </div>
                 <p className="text-sm text-gray-600 font-semibold text-wordle-correct">
-                  Solved! The word was "WHEAT". You earned points based on solving in 4 guesses plus any streak bonuses.
+                  Solved! The word was "WHEAT". All letters are in the correct position. You earned points based on solving in 4 guesses plus any streak bonuses.
                 </p>
               </div>
             </div>

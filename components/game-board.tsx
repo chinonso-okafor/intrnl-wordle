@@ -23,9 +23,9 @@ function Tile({ letter, state, isActive, delay = 0 }: TileProps) {
       initial={{ scale: 1 }}
       animate={isActive && state ? { rotateX: [0, 90, 0] } : {}}
       transition={{ duration: 0.6, delay }}
-      className={`flex h-14 w-14 items-center justify-center rounded border-2 font-bold text-xl ${
-        state ? getBgColor() : "border-gray-300 bg-white"
-      } ${letter ? "border-gray-400" : ""}`}
+      className={`flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded border-2 font-bold text-lg sm:text-xl ${
+        state ? getBgColor() : "border-gray-300 bg-white dark:bg-gray-700 dark:border-gray-600"
+      } ${letter ? "border-gray-400 dark:border-gray-500" : ""} ${!state && !letter ? "dark:text-white" : ""}`}
     >
       {letter.toUpperCase()}
     </motion.div>
@@ -52,7 +52,7 @@ export function GameBoard({
     const displayGuess = isCurrentRow ? currentGuess : guess;
 
     return (
-      <div key={i} className="flex gap-2 justify-center">
+      <div key={i} className="flex gap-1 sm:gap-2 justify-center">
         {Array.from({ length: 5 }, (_, j) => (
           <Tile
             key={j}

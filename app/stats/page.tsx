@@ -53,9 +53,9 @@ export default function StatsPage() {
   }));
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 max-w-full overflow-x-hidden">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8">Your Statistics</h1>
+        <h1 className="text-3xl font-bold mb-8 text-wordle-text dark:text-white">Your Statistics</h1>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-lg p-6 shadow">
