@@ -264,7 +264,6 @@ function LeaderboardContent() {
       </div>
     </div>
   );
-  );
 }
 
 export default function LeaderboardPage() {
