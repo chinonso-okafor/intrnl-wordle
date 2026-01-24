@@ -9,12 +9,12 @@ export default function HowToPlayPage() {
         <h1 className="text-3xl font-bold mb-8 text-wordle-text dark:text-white">How to Play</h1>
 
         <div className="space-y-8">
-          <section className="bg-white rounded-lg p-6 shadow">
-            <h2 className="text-2xl font-bold mb-4">The Basics</h2>
-            <p className="text-gray-700 mb-4">
+          <section className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow transition-colors">
+            <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">The Basics</h2>
+            <p className="text-gray-700 dark:text-gray-300 mb-4">
               Wordle is a word guessing game. You have 6 attempts to guess a 5-letter word.
             </p>
-            <ul className="list-disc list-inside space-y-2 text-gray-700">
+            <ul className="list-disc list-inside space-y-2 text-gray-700 dark:text-gray-300">
               <li>Each guess must be a valid 5-letter word</li>
               <li>After each guess, the tiles change color to show how close your guess was</li>
               <li>The same word is used for all players each day</li>
@@ -22,12 +22,12 @@ export default function HowToPlayPage() {
             </ul>
           </section>
 
-          <section className="bg-white rounded-lg p-6 shadow">
-            <h2 className="text-2xl font-bold mb-4">Tile Colors</h2>
+          <section className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow transition-colors">
+            <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Tile Colors</h2>
             <div className="space-y-4">
               <div>
-                <h3 className="font-semibold mb-2">🟩 Green - Correct Letter, Correct Position</h3>
-                <p className="text-gray-700 mb-3">
+                <h3 className="font-semibold mb-2 text-gray-800 dark:text-gray-200">🟩 Green - Correct Letter, Correct Position</h3>
+                <p className="text-gray-700 dark:text-gray-300 mb-3">
                   The letter is in the word and in the correct position.
                 </p>
                 <div className="flex gap-2 mb-4">
@@ -37,14 +37,14 @@ export default function HowToPlayPage() {
                   <Tile letter="D" />
                   <Tile letter="S" />
                 </div>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
                   In this example, "W" is in the word and in the first position.
                 </p>
               </div>
 
               <div>
-                <h3 className="font-semibold mb-2">🟨 Yellow - Correct Letter, Wrong Position</h3>
-                <p className="text-gray-700 mb-3">
+                <h3 className="font-semibold mb-2 text-gray-800 dark:text-gray-200">🟨 Yellow - Correct Letter, Wrong Position</h3>
+                <p className="text-gray-700 dark:text-gray-300 mb-3">
                   The letter is in the word but in a different position.
                 </p>
                 <div className="flex gap-2 mb-4">
@@ -54,14 +54,14 @@ export default function HowToPlayPage() {
                   <Tile letter="R" />
                   <Tile letter="E" />
                 </div>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
                   In this example, "O" is in the word but not in the third position.
                 </p>
               </div>
 
               <div>
-                <h3 className="font-semibold mb-2">⬛ Gray - Letter Not in Word</h3>
-                <p className="text-gray-700 mb-3">
+                <h3 className="font-semibold mb-2 text-gray-800 dark:text-gray-200">⬛ Gray - Letter Not in Word</h3>
+                <p className="text-gray-700 dark:text-gray-300 mb-3">
                   The letter is not in the word at all.
                 </p>
                 <div className="flex gap-2 mb-4">
@@ -71,28 +71,28 @@ export default function HowToPlayPage() {
                   <Tile letter="L" state="absent" />
                   <Tile letter="E" />
                 </div>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
                   In this example, "L" is not in the word.
                 </p>
               </div>
             </div>
           </section>
 
-          <section className="bg-white rounded-lg p-6 shadow">
-            <h2 className="text-2xl font-bold mb-4">Scoring System</h2>
+          <section className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow transition-colors">
+            <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Scoring System</h2>
             <div className="space-y-4">
               <div>
-                <h3 className="font-semibold mb-2">Base Points</h3>
-                <ul className="list-disc list-inside space-y-1 text-gray-700">
+                <h3 className="font-semibold mb-2 text-gray-800 dark:text-gray-200">Base Points</h3>
+                <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300">
                   <li><strong>Solved puzzle:</strong> 10 base points</li>
                   <li><strong>Failed attempt:</strong> 5 points (encourages participation)</li>
                 </ul>
               </div>
 
               <div>
-                <h3 className="font-semibold mb-2">Attempt Bonus</h3>
-                <p className="text-gray-700 mb-2">Additional points based on how quickly you solve:</p>
-                <ul className="list-disc list-inside space-y-1 text-gray-700">
+                <h3 className="font-semibold mb-2 text-gray-800 dark:text-gray-200">Attempt Bonus</h3>
+                <p className="text-gray-700 dark:text-gray-300 mb-2">Additional points based on how quickly you solve:</p>
+                <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300">
                   <li>Guess 1: +5 points (total: 15)</li>
                   <li>Guess 2: +4 points (total: 14)</li>
                   <li>Guess 3: +3 points (total: 13)</li>
@@ -103,25 +103,25 @@ export default function HowToPlayPage() {
               </div>
 
               <div>
-                <h3 className="font-semibold mb-2">Streak Bonuses</h3>
-                <p className="text-gray-700 mb-2">Bonus points for maintaining streaks (cumulative):</p>
-                <ul className="list-disc list-inside space-y-1 text-gray-700">
+                <h3 className="font-semibold mb-2 text-gray-800 dark:text-gray-200">Streak Bonuses</h3>
+                <p className="text-gray-700 dark:text-gray-300 mb-2">Bonus points for maintaining streaks (cumulative):</p>
+                <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300">
                   <li>3-day streak: +2 points per game</li>
                   <li>7-day streak: +5 points per game</li>
                   <li>30-day streak: +10 points per game</li>
                 </ul>
-                <p className="text-sm text-gray-600 mt-2">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
                   Example: With a 7-day streak and solving in 2 guesses, you earn 14 + 5 = 19 points!
                 </p>
               </div>
             </div>
           </section>
 
-          <section className="bg-white rounded-lg p-6 shadow">
-            <h2 className="text-2xl font-bold mb-4">Example Game</h2>
+          <section className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow transition-colors">
+            <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Example Game</h2>
             <div className="space-y-4">
               <div>
-                <p className="font-semibold mb-2">Guess 1: "STORM"</p>
+                <p className="font-semibold mb-2 text-gray-800 dark:text-gray-200">Guess 1: "STORM"</p>
                 <div className="flex gap-2 mb-2">
                   <Tile letter="S" state="absent" />
                   <Tile letter="T" state="present" />
@@ -129,13 +129,13 @@ export default function HowToPlayPage() {
                   <Tile letter="R" state="absent" />
                   <Tile letter="M" state="absent" />
                 </div>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
                   "T" is in the word but in a different position. "S", "O", "R", "M" are not in the word.
                 </p>
               </div>
 
               <div>
-                <p className="font-semibold mb-2">Guess 2: "LIGHT"</p>
+                <p className="font-semibold mb-2 text-gray-800 dark:text-gray-200">Guess 2: "LIGHT"</p>
                 <div className="flex gap-2 mb-2">
                   <Tile letter="L" state="absent" />
                   <Tile letter="I" state="absent" />
@@ -143,13 +143,13 @@ export default function HowToPlayPage() {
                   <Tile letter="H" state="present" />
                   <Tile letter="T" state="correct" />
                 </div>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
                   "T" is in the correct position (last)! "H" is in the word but in a different position. "L", "I", "G" are not in the word.
                 </p>
               </div>
 
               <div>
-                <p className="font-semibold mb-2">Guess 3: "HEART"</p>
+                <p className="font-semibold mb-2 text-gray-800 dark:text-gray-200">Guess 3: "HEART"</p>
                 <div className="flex gap-2 mb-2">
                   <Tile letter="H" state="present" />
                   <Tile letter="E" state="present" />
@@ -157,13 +157,13 @@ export default function HowToPlayPage() {
                   <Tile letter="R" state="absent" />
                   <Tile letter="T" state="correct" />
                 </div>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
                   "H", "E", and "A" are in the word but in wrong positions. "T" is still correct. "R" is not in the word.
                 </p>
               </div>
 
               <div>
-                <p className="font-semibold mb-2">Guess 4: "WHEAT"</p>
+                <p className="font-semibold mb-2 text-gray-800 dark:text-gray-200">Guess 4: "WHEAT"</p>
                 <div className="flex gap-2 mb-2">
                   <Tile letter="W" state="correct" />
                   <Tile letter="H" state="correct" />
@@ -171,16 +171,16 @@ export default function HowToPlayPage() {
                   <Tile letter="A" state="correct" />
                   <Tile letter="T" state="correct" />
                 </div>
-                <p className="text-sm text-gray-600 font-semibold text-wordle-correct">
+                <p className="text-sm text-gray-600 dark:text-gray-400 font-semibold text-wordle-correct">
                   Solved! The word was "WHEAT". All letters are in the correct position. You earned points based on solving in 4 guesses plus any streak bonuses.
                 </p>
               </div>
             </div>
           </section>
 
-          <section className="bg-white rounded-lg p-6 shadow">
-            <h2 className="text-2xl font-bold mb-4">Tips</h2>
-            <ul className="list-disc list-inside space-y-2 text-gray-700">
+          <section className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow transition-colors">
+            <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Tips</h2>
+            <ul className="list-disc list-inside space-y-2 text-gray-700 dark:text-gray-300">
               <li>Start with words that have common vowels (A, E, I, O, U)</li>
               <li>Use your second guess to test different letters</li>
               <li>Pay attention to letter positions - green means correct position!</li>

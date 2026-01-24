@@ -887,77 +887,77 @@ export default function AdminPage() {
         )}
 
         {activeTab === "settings" && settings && (
-          <div className="bg-white rounded-lg p-6 shadow space-y-6">
-            <h2 className="text-xl font-bold">Game Settings</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow space-y-6 transition-colors">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Game Settings</h2>
             
             <div>
-              <h3 className="font-semibold mb-3">Streak Bonuses</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <h3 className="font-semibold mb-3 text-gray-800 dark:text-gray-200">Streak Bonuses</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">3-Day Streak</label>
+                  <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">3-Day Streak</label>
                   <input
                     type="number"
                     value={settings.streakBonus3Day}
                     onChange={(e) => setSettings({...settings, streakBonus3Day: parseInt(e.target.value) || 0})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-wordle-correct focus:border-wordle-correct transition-colors"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">7-Day Streak</label>
+                  <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">7-Day Streak</label>
                   <input
                     type="number"
                     value={settings.streakBonus7Day}
                     onChange={(e) => setSettings({...settings, streakBonus7Day: parseInt(e.target.value) || 0})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-wordle-correct focus:border-wordle-correct transition-colors"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">30-Day Streak</label>
+                  <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">30-Day Streak</label>
                   <input
                     type="number"
                     value={settings.streakBonus30Day}
                     onChange={(e) => setSettings({...settings, streakBonus30Day: parseInt(e.target.value) || 0})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-wordle-correct focus:border-wordle-correct transition-colors"
                   />
                 </div>
               </div>
             </div>
 
             <div>
-              <h3 className="font-semibold mb-3">Point Values</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <h3 className="font-semibold mb-3 text-gray-800 dark:text-gray-200">Point Values</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Base Solve Points</label>
+                  <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Base Solve Points</label>
                   <input
                     type="number"
                     value={settings.baseSolvePoints}
                     onChange={(e) => setSettings({...settings, baseSolvePoints: parseInt(e.target.value) || 0})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-wordle-correct focus:border-wordle-correct transition-colors"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Failed Attempt Points</label>
+                  <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Failed Attempt Points</label>
                   <input
                     type="number"
                     value={settings.failedAttemptPoints}
                     onChange={(e) => setSettings({...settings, failedAttemptPoints: parseInt(e.target.value) || 0})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-wordle-correct focus:border-wordle-correct transition-colors"
                   />
                 </div>
               </div>
             </div>
 
             <div>
-              <h3 className="font-semibold mb-3">Attempt Bonuses</h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <h3 className="font-semibold mb-3 text-gray-800 dark:text-gray-200">Attempt Bonuses</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
                 {[1, 2, 3, 4, 5, 6].map((attempt) => (
                   <div key={attempt}>
-                    <label className="block text-sm font-medium mb-1">Guess {attempt}</label>
+                    <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Guess {attempt}</label>
                     <input
                       type="number"
                       value={settings[`attemptBonus${attempt}` as keyof Settings] as number}
                       onChange={(e) => setSettings({...settings, [`attemptBonus${attempt}`]: parseInt(e.target.value) || 0} as any)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-wordle-correct focus:border-wordle-correct transition-colors"
                     />
                   </div>
                 ))}
@@ -965,48 +965,48 @@ export default function AdminPage() {
             </div>
 
             <div>
-              <h3 className="font-semibold mb-3">Daily Reset</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <h3 className="font-semibold mb-3 text-gray-800 dark:text-gray-200">Daily Reset</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Reset Time (UTC)</label>
+                  <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Reset Time (UTC)</label>
                   <input
                     type="time"
                     value={settings.dailyResetTime}
                     onChange={(e) => setSettings({...settings, dailyResetTime: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-wordle-correct focus:border-wordle-correct transition-colors"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Timezone</label>
+                  <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Timezone</label>
                   <input
                     type="text"
                     value={settings.timezone}
                     onChange={(e) => setSettings({...settings, timezone: e.target.value})}
                     placeholder="UTC"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-wordle-correct focus:border-wordle-correct transition-colors"
                   />
                 </div>
               </div>
             </div>
 
             <div>
-              <h3 className="font-semibold mb-3">Feature Toggles</h3>
+              <h3 className="font-semibold mb-3 text-gray-800 dark:text-gray-200">Feature Toggles</h3>
               <div className="space-y-2">
-                <label className="flex items-center">
+                <label className="flex items-center text-gray-700 dark:text-gray-300 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={settings.featureWordReporting}
                     onChange={(e) => setSettings({...settings, featureWordReporting: e.target.checked})}
-                    className="mr-2"
+                    className="mr-2 h-4 w-4 rounded border-gray-300 text-wordle-correct focus:ring-wordle-correct dark:border-gray-600 dark:bg-gray-700"
                   />
                   <span>Word Reporting</span>
                 </label>
-                <label className="flex items-center">
+                <label className="flex items-center text-gray-700 dark:text-gray-300 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={settings.featureLeaderboard}
                     onChange={(e) => setSettings({...settings, featureLeaderboard: e.target.checked})}
-                    className="mr-2"
+                    className="mr-2 h-4 w-4 rounded border-gray-300 text-wordle-correct focus:ring-wordle-correct dark:border-gray-600 dark:bg-gray-700"
                   />
                   <span>Leaderboard</span>
                 </label>
@@ -1015,7 +1015,7 @@ export default function AdminPage() {
 
             <button
               onClick={handleSaveSettings}
-              className="px-6 py-2 bg-wordle-correct text-white rounded-md hover:bg-opacity-90"
+              className="px-6 py-2 bg-wordle-correct text-white rounded-md hover:bg-opacity-90 transition-colors shadow-sm"
             >
               Save Settings
             </button>
@@ -1023,32 +1023,32 @@ export default function AdminPage() {
         )}
 
         {activeTab === "activity" && (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
-            <h2 className="text-xl font-bold p-6 border-b">Admin Activity Log</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden transition-colors">
+            <h2 className="text-xl font-bold p-6 border-b border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">Admin Activity Log</h2>
             <div className="overflow-x-auto">
               {activities.length === 0 ? (
-                <div className="p-6 text-center text-gray-500">No activity logged</div>
+                <div className="p-6 text-center text-gray-500 dark:text-gray-400">No activity logged</div>
               ) : (
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                  <thead className="bg-gray-50 dark:bg-gray-700">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Admin</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Details</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Action</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Admin</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Details</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                     {activities.map((activity) => (
-                      <tr key={activity.id}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">{activity.action}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{activity.admin.name}</td>
-                        <td className="px-6 py-4 text-sm text-gray-900">
-                          <pre className="text-xs bg-gray-50 p-2 rounded overflow-auto max-w-md">
+                      <tr key={activity.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{activity.action}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">{activity.admin.name}</td>
+                        <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
+                          <pre className="text-xs bg-gray-50 dark:bg-gray-900/50 p-2 rounded overflow-auto max-w-md border border-gray-100 dark:border-gray-700">
                             {JSON.stringify(activity.details, null, 2)}
                           </pre>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
                           {new Date(activity.createdAt).toLocaleString()}
                         </td>
                       </tr>
@@ -1061,9 +1061,9 @@ export default function AdminPage() {
         )}
 
         {activeTab === "stats" && (
-          <div className="bg-white rounded-lg p-6 shadow">
-            <h2 className="text-xl font-bold mb-4">Admin Statistics</h2>
-            <p className="text-gray-600">Statistics dashboard coming soon...</p>
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow transition-colors">
+            <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Admin Statistics</h2>
+            <p className="text-gray-600 dark:text-gray-400">Statistics dashboard coming soon...</p>
           </div>
         )}
       </div>
