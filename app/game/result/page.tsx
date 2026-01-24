@@ -253,5 +253,4 @@ export default function GameResultPage() {
       </div>
     </div>
   );
-  );
 }
