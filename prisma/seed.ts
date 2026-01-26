@@ -1,6 +1,14 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import { VALID_WORDS } from "../lib/words";
+import { CURATED_ANSWER_WORDS } from "../lib/curated-answer-words";
+import * as fs from "fs";
+import * as path from "path";
+
+// Load validation words from JSON file
+const validationWordsPath = path.join(__dirname, "../lib/curated-validation-words.json");
+const CURATED_VALIDATION_WORDS: string[] = JSON.parse(
+  fs.readFileSync(validationWordsPath, "utf-8")
+);
 
 const prisma = new PrismaClient();
 
@@ -37,40 +45,46 @@ async function main() {
 
   console.log("Created test user:", user.email);
 
-  // Seed answer words (use VALID_WORDS as initial answer words)
-  console.log("Seeding answer words...");
+  // Clear existing word data to avoid duplicates
+  console.log("Clearing existing word data...");
+  await prisma.word.deleteMany({});
+  await prisma.answerWord.deleteMany({});
+  await prisma.validationWord.deleteMany({});
+
+  // Seed answer words from curated list (deduplicated)
+  const answerSet = new Set(CURATED_ANSWER_WORDS.map(w => w.toUpperCase()));
+  const answerWords = Array.from(answerSet);
+  console.log(`Seeding ${answerWords.length} unique curated answer words...`);
+  
   let answerWordCount = 0;
-  for (const word of VALID_WORDS) {
-    try {
-      await prisma.answerWord.upsert({
-        where: { word },
-        update: {},
-        create: {
-          word,
-          source: "supplemental",
-        },
-      });
-      answerWordCount++;
-    } catch (error) {
-      // Skip duplicates
-    }
+  const chunkSize = 500;
+  
+  for (let i = 0; i < answerWords.length; i += chunkSize) {
+    const chunk = answerWords.slice(i, i + chunkSize);
+    await prisma.answerWord.createMany({
+      data: chunk.map(word => ({ word, source: "curated" })),
+    });
+    answerWordCount = Math.min(i + chunkSize, answerWords.length);
+    console.log(`  Progress: ${answerWordCount}/${answerWords.length} answer words`);
   }
   console.log(`Seeded ${answerWordCount} answer words`);
 
-  // Seed validation words (use VALID_WORDS as initial validation words)
-  console.log("Seeding validation words...");
+  // Seed validation words (excluding answer words)
+  const validationWords = CURATED_VALIDATION_WORDS
+    .map(w => w.toUpperCase())
+    .filter(w => !answerSet.has(w));
+  const uniqueValidationWords = Array.from(new Set(validationWords));
+  
+  console.log(`Seeding ${uniqueValidationWords.length} validation words...`);
   let validationWordCount = 0;
-  for (const word of VALID_WORDS) {
-    try {
-      await prisma.validationWord.upsert({
-        where: { word },
-        update: {},
-        create: { word },
-      });
-      validationWordCount++;
-    } catch (error) {
-      // Skip duplicates
-    }
+  
+  for (let i = 0; i < uniqueValidationWords.length; i += chunkSize) {
+    const chunk = uniqueValidationWords.slice(i, i + chunkSize);
+    await prisma.validationWord.createMany({
+      data: chunk.map(word => ({ word })),
+    });
+    validationWordCount = Math.min(i + chunkSize, uniqueValidationWords.length);
+    console.log(`  Progress: ${validationWordCount}/${uniqueValidationWords.length} validation words`);
   }
   console.log(`Seeded ${validationWordCount} validation words`);
 
@@ -78,7 +92,7 @@ async function main() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
-  const todayWord = VALID_WORDS[Math.floor(Math.random() * VALID_WORDS.length)];
+  const todayWord = answerWords[Math.floor(Math.random() * answerWords.length)];
   
   // Get or create answer word
   let answerWord = await prisma.answerWord.findUnique({
@@ -89,7 +103,7 @@ async function main() {
     answerWord = await prisma.answerWord.create({
       data: {
         word: todayWord,
-        source: "supplemental",
+        source: "curated",
       },
     });
   }
@@ -106,6 +120,14 @@ async function main() {
 
   console.log(`Set today's word: ${todayWord}`);
 
+  // Print summary
+  const finalAnswerCount = await prisma.answerWord.count();
+  const finalValidationCount = await prisma.validationWord.count();
+  
+  console.log("\n=== Seed Summary ===");
+  console.log(`Answer words (daily puzzles): ${finalAnswerCount}`);
+  console.log(`Validation words (valid guesses): ${finalValidationCount}`);
+  console.log(`Total unique valid words: ${finalAnswerCount + finalValidationCount}`);
   console.log("Seeding completed!");
 }
 

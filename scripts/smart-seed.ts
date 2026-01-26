@@ -1,50 +1,34 @@
 import { PrismaClient } from "@prisma/client";
-import fs from "fs";
-import path from "path";
+import { CURATED_ANSWER_WORDS } from "../lib/curated-answer-words";
+import * as fs from "fs";
+import * as path from "path";
+
+// Load validation words from JSON file
+const validationWordsPath = path.join(__dirname, "../lib/curated-validation-words.json");
+const CURATED_VALIDATION_WORDS: string[] = JSON.parse(
+  fs.readFileSync(validationWordsPath, "utf-8")
+);
 
 const prisma = new PrismaClient();
 
-// Words ending in 'S' that are NOT plurals and should be allowed as answers
-const NON_PLURAL_S_WORDS = new Set([
-  "ABYSS", "AMISS", "BLISS", "BRASS", "CHESS", "CLASS", "DROSS", "GLASS", "GRASS", "GUESS",
-  "CROSS", "GLOSS", "ROSSA", "BLESS", "FLOSS", "PRESS", "DRESS", "TRUSS", "FOCUS", "ETHOS",
-  "CHAOS", "AXIS", "BASIS", "LOCUS", "VIRUS", "BONUS", "MINUS", "LOTUS", "REBUS"
-]);
-
 async function main() {
-  console.log("Starting smart seed...");
+  console.log("Starting smart seed with curated word lists...");
+  console.log(`Answer words: ${CURATED_ANSWER_WORDS.length} common, recognizable words`);
+  console.log(`Validation words: ${CURATED_VALIDATION_WORDS.length} valid guesses`);
 
-  const answersPath = path.join(process.cwd(), "answers.txt");
-  const allowedPath = path.join(process.cwd(), "allowed.txt");
-
-  if (!fs.existsSync(answersPath) || !fs.existsSync(allowedPath)) {
-    throw new Error("Word lists not found. Please run the download commands first.");
-  }
-
-  const rawAnswers = fs.readFileSync(answersPath, "utf-8").split("\n").filter(Boolean);
-  const rawAllowed = fs.readFileSync(allowedPath, "utf-8").split("\n").filter(Boolean);
-
-  console.log(`Read ${rawAnswers.length} answer candidates and ${rawAllowed.length} allowed guesses.`);
-
-  const answerWords: string[] = [];
-  const initialValidationWords: string[] = [...rawAllowed.map(w => w.toUpperCase())];
-
-  for (const word of rawAnswers) {
-    const upperWord = word.toUpperCase();
-    
-    // Logic: If it ends in S and is not in our "keep" list, it's a validation-only word (likely a plural)
-    if (upperWord.endsWith("S") && !NON_PLURAL_S_WORDS.has(upperWord)) {
-      initialValidationWords.push(upperWord);
-    } else {
-      answerWords.push(upperWord);
-    }
-  }
-
-  // Ensure uniqueness: ValidationWords should not include AnswerWords
+  // Prepare answer words (normalize to uppercase)
+  const answerWords = CURATED_ANSWER_WORDS.map(w => w.toUpperCase());
   const answerSet = new Set(answerWords);
-  const validationOnlyWords = Array.from(new Set(initialValidationWords.filter(w => !answerSet.has(w))));
 
-  console.log(`Processing complete: ${answerWords.length} AnswerWords, ${validationOnlyWords.length} ValidationWords.`);
+  // Prepare validation words (exclude answer words to avoid duplicates)
+  const validationOnlyWords = CURATED_VALIDATION_WORDS
+    .map(w => w.toUpperCase())
+    .filter(w => !answerSet.has(w));
+
+  // Remove duplicates
+  const uniqueValidationWords = Array.from(new Set(validationOnlyWords));
+
+  console.log(`Processing complete: ${answerWords.length} AnswerWords, ${uniqueValidationWords.length} ValidationWords.`);
 
   // Clear existing words to ensure a clean start
   console.log("Clearing existing words...");
@@ -56,11 +40,11 @@ async function main() {
   console.log("Seeding AnswerWord table...");
   const answerData = answerWords.map(word => ({
     word,
-    source: "nyt"
+    source: "curated"
   }));
 
   // Chunking to avoid database limits
-  const chunkSize = 1000;
+  const chunkSize = 500;
   for (let i = 0; i < answerData.length; i += chunkSize) {
     const chunk = answerData.slice(i, i + chunkSize);
     await prisma.answerWord.createMany({
@@ -71,7 +55,7 @@ async function main() {
 
   // Seed ValidationWords
   console.log("Seeding ValidationWord table...");
-  const validationData = validationOnlyWords.map(word => ({
+  const validationData = uniqueValidationWords.map(word => ({
     word
   }));
 
@@ -88,7 +72,7 @@ async function main() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // Pick a random word from our new answer words
+  // Pick a random word from our curated answer words
   const randomAnswer = answerWords[Math.floor(Math.random() * answerWords.length)];
   const answerWordRecord = await prisma.answerWord.findUnique({
     where: { word: randomAnswer }
@@ -101,19 +85,36 @@ async function main() {
     });
 
     if (admin) {
-      await prisma.word.create({
-        data: {
-          answerWordId: answerWordRecord.id,
-          dateUsed: today,
-          createdBy: admin.id,
-        },
+      // Check if today's word already exists
+      const existingWord = await prisma.word.findUnique({
+        where: { dateUsed: today }
       });
-      console.log(`Today's word set to: ${randomAnswer}`);
+
+      if (!existingWord) {
+        await prisma.word.create({
+          data: {
+            answerWordId: answerWordRecord.id,
+            dateUsed: today,
+            createdBy: admin.id,
+          },
+        });
+        console.log(`Today's word set to: ${randomAnswer}`);
+      } else {
+        console.log("Today's word already exists, skipping...");
+      }
     } else {
       console.log("No admin user found. Please set today's word manually in the admin panel.");
     }
   }
 
+  // Print summary
+  const finalAnswerCount = await prisma.answerWord.count();
+  const finalValidationCount = await prisma.validationWord.count();
+  
+  console.log("\n=== Seed Summary ===");
+  console.log(`Answer words (daily puzzles): ${finalAnswerCount}`);
+  console.log(`Validation words (valid guesses): ${finalValidationCount}`);
+  console.log(`Total unique valid words: ${finalAnswerCount + finalValidationCount}`);
   console.log("Smart seed completed successfully!");
 }
 

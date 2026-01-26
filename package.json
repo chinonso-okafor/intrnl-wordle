@@ -16,7 +16,8 @@
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
     "db:migrate": "prisma migrate dev",
-    "db:init": "node scripts/init-db.js"
+    "db:init": "node scripts/init-db.js",
+    "test:words": "node scripts/test-validation-words.js"
   },
   "dependencies": {
     "next": "^14.2.0",
