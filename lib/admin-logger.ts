@@ -28,5 +28,4 @@ export const AdminActions = {
   REMOVE_WORD: "remove_word",
   IMPORT_WORDS: "import_words",
   EXPORT_WORDS: "export_words",
-  FETCH_NYT_WORDS: "fetch_nyt_words",
 } as const;

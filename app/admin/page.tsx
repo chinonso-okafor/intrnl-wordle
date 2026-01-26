@@ -21,8 +21,6 @@ interface User {
 
 interface WordStats {
   totalAnswerWords: number;
-  nytWords: number;
-  supplementalWords: number;
   usedWords: number;
   availableWords: number;
   exhaustionWarning: boolean;
@@ -496,18 +494,10 @@ export default function AdminPage() {
             {wordStats && (
               <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow">
                 <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Word Statistics</h2>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">Total Answer Words</p>
                     <p className="text-2xl font-bold text-gray-900 dark:text-white">{wordStats.totalAnswerWords}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">NYT Words</p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{wordStats.nytWords}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Supplemental</p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{wordStats.supplementalWords}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">Available</p>
@@ -560,29 +550,6 @@ export default function AdminPage() {
                     className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
                   >
                     Export Validation Words
-                  </button>
-                  <button
-                    onClick={async () => {
-                      try {
-                        const response = await fetch("/api/admin/words/fetch-nyt", {
-                          method: "POST",
-                        });
-                        if (response.ok) {
-                          const data = await response.json();
-                          toast.success(`Fetched ${data.fetched} NYT words. Imported ${data.imported}.`);
-                          loadWordStats();
-                          loadTodayWord();
-                        } else {
-                          const errorData = await response.json();
-                          toast.error(errorData.error || "Failed to fetch NYT words");
-                        }
-                      } catch (error) {
-                        toast.error("Failed to fetch NYT words");
-                      }
-                    }}
-                    className="px-4 py-2 bg-purple-500 text-white rounded-md hover:bg-purple-600 transition-colors"
-                  >
-                    Fetch NYT Words
                   </button>
                 </div>
                 <div className="flex gap-4 items-end flex-wrap">
