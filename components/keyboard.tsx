@@ -23,10 +23,13 @@ export function Keyboard({
 }: KeyboardProps) {
   const getKeyColor = (key: string) => {
     const state = letterStates[key.toUpperCase()];
-    if (!state) return "bg-gray-200 hover:bg-gray-300";
-    if (state === "correct") return "bg-wordle-correct text-white";
-    if (state === "present") return "bg-wordle-present text-white";
-    return "bg-wordle-absent text-white";
+    if (!state) {
+      // Unused keys: dark text on light bg in light mode, light text on dark bg in dark mode
+      return "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:hover:bg-gray-600";
+    }
+    if (state === "correct") return "bg-wordle-correct text-white border border-wordle-correct";
+    if (state === "present") return "bg-wordle-present text-white border border-wordle-present";
+    return "bg-wordle-absent text-white border border-wordle-absent";
   };
 
   const handleKeyClick = (key: string) => {
@@ -47,9 +50,9 @@ export function Keyboard({
             <button
               key={key}
               onClick={() => handleKeyClick(key)}
-              className={`px-2 sm:px-3 py-3 rounded font-semibold text-xs sm:text-sm ${
+              className={`px-2 sm:px-3 py-3 rounded font-semibold text-xs sm:text-sm transition-colors ${
                 key === "ENTER" || key === "BACKSPACE"
-                  ? "bg-gray-400 hover:bg-gray-500 text-white min-w-[50px] sm:min-w-[60px]"
+                  ? "bg-gray-400 dark:bg-gray-600 hover:bg-gray-500 dark:hover:bg-gray-500 text-white border border-gray-500 dark:border-gray-500 min-w-[50px] sm:min-w-[60px]"
                   : `min-w-[32px] sm:min-w-[40px] ${getKeyColor(key)}`
               }`}
             >

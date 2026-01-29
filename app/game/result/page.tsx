@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { generateEmojiGrid } from "@/lib/game";
+import { getClientTimezone } from "@/lib/utils";
 import toast from "react-hot-toast";
 
 interface GameResult {
@@ -41,7 +42,9 @@ export default function GameResultPage() {
 
   const loadResult = async () => {
     try {
-      const response = await fetch("/api/game/result");
+      const response = await fetch("/api/game/result", {
+        headers: { "X-Timezone": getClientTimezone() },
+      });
       if (response.ok) {
         const data = await response.json();
         setResult(data);
@@ -79,7 +82,10 @@ export default function GameResultPage() {
     try {
       const response = await fetch("/api/game/report-word", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-Timezone": getClientTimezone(),
+        },
         body: JSON.stringify({ reason: reportReason }),
       });
 

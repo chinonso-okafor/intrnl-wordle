@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { GameBoard } from "@/components/game-board";
 import { Keyboard } from "@/components/keyboard";
 import { LetterState, LetterEvaluation } from "@/lib/game";
+import { getClientTimezone } from "@/lib/utils";
 import { isValidWordSync } from "@/lib/words";
 import toast from "react-hot-toast";
 
@@ -33,7 +34,9 @@ export default function GamePage() {
 
   const loadGame = async () => {
     try {
-      const response = await fetch("/api/game/current");
+      const response = await fetch("/api/game/current", {
+        headers: { "X-Timezone": getClientTimezone() },
+      });
       if (!response.ok) {
         if (response.status === 401) {
           router.push("/login");
@@ -68,7 +71,10 @@ export default function GamePage() {
           try {
             const evalResponse = await fetch("/api/game/evaluate", {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: {
+                "Content-Type": "application/json",
+                "X-Timezone": getClientTimezone(),
+              },
               body: JSON.stringify({ guesses: guessList }),
             });
             
@@ -143,7 +149,10 @@ export default function GamePage() {
     try {
       const response = await fetch("/api/game/submit", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-Timezone": getClientTimezone(),
+        },
         body: JSON.stringify({
           guess: currentGuess,
         }),
@@ -156,14 +165,20 @@ export default function GamePage() {
       }
 
       const data = await response.json();
-      const newGuesses = [...guesses, currentGuess];
+      // Store submitted guess before clearing to prevent flicker
+      const submittedGuess = currentGuess;
+      
+      // Clear currentGuess IMMEDIATELY to prevent it from appearing on next row
+      setCurrentGuess("");
+      
+      const newGuesses = [...guesses, submittedGuess];
       const newEvaluations = [...evaluations, data.evaluation];
 
       setGuesses(newGuesses);
       setEvaluations(newEvaluations);
       
-      // Update letter states from evaluation
-      const evaluation: LetterEvaluation[] = currentGuess.split("").map((letter, i) => ({
+      // Update letter states from evaluation (use submittedGuess)
+      const evaluation: LetterEvaluation[] = submittedGuess.split("").map((letter, i) => ({
         letter,
         state: data.evaluation[i],
       }));
@@ -186,8 +201,6 @@ export default function GamePage() {
         setTimeout(() => {
           router.push("/game/result");
         }, 2000);
-      } else {
-        setCurrentGuess("");
       }
     } catch (error) {
       toast.error("Failed to submit guess");

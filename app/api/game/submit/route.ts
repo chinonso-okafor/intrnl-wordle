@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { getTodayDate } from "@/lib/utils";
+import { getTodayDateForTimezone, getTimezoneFromRequest } from "@/lib/utils";
 import { calculatePoints } from "@/lib/game";
 
 export async function POST(request: Request) {
@@ -12,6 +12,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const timezone = getTimezoneFromRequest(request);
+
   try {
     const { guess } = await request.json();
 
@@ -19,7 +21,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid guess" }, { status: 400 });
     }
 
-    const today = new Date(getTodayDate());
+    const todayStr = getTodayDateForTimezone(timezone);
+    const today = new Date(todayStr);
     today.setHours(0, 0, 0, 0);
 
     // Get today's word with answer word

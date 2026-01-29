@@ -2,17 +2,20 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { getTodayDate } from "@/lib/utils";
+import { getTodayDateForTimezone, getTimezoneFromRequest } from "@/lib/utils";
 
-export async function GET() {
+export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const timezone = getTimezoneFromRequest(request);
+  const todayStr = getTodayDateForTimezone(timezone);
+
   try {
-    const today = new Date(getTodayDate());
+    const today = new Date(todayStr);
     today.setHours(0, 0, 0, 0);
 
     const game = await prisma.game.findUnique({
