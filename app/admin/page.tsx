@@ -4,6 +4,17 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 interface Word {
   id: string;
@@ -67,6 +78,59 @@ interface TodayWord {
   source: string;
 }
 
+interface AdminStatistics {
+  overview: {
+    totalUsers: number;
+    activePlayers7d: number;
+    activePlayers7dPct: number;
+    gamesToday: number;
+    totalGames: number;
+    avgWinRate: number;
+    playersWithActiveStreak: number;
+  };
+  todayParticipation: {
+    played: number;
+    total: number;
+    pct: number;
+    notPlayedToday: { id: string; name: string }[];
+  };
+  participationChart: { date: string; participation: number; players: number }[];
+  guessDistribution: {
+    items: { attempts: number; count: number; pct: number; label: string }[];
+    mostCommon: string;
+    avgGuessesPerWin: number;
+  };
+  topPerformers: { name: string; points: number; games: number; currentStreak: number; avgGuesses: number | null }[];
+  engagementTrends: {
+    weekly: { weekLabel: string; participation: number; games: number }[];
+    trend: string;
+    pctChange: number;
+  };
+  streakLeaders: { userId: string; name: string; currentStreak: number }[];
+  atRiskCount: number;
+  wordPerformance: {
+    word: string;
+    dateUsed: string;
+    winRate: number;
+    avgGuesses: number | null;
+    games: number;
+  }[];
+  wordBank: {
+    total: number;
+    used: number;
+    remaining: number;
+    estimatedRunwayDays: number | null;
+    warning: boolean;
+  };
+  recentActivity: {
+    id: string;
+    action: string;
+    details: Record<string, unknown>;
+    adminName: string;
+    createdAt: string;
+  }[];
+}
+
 export default function AdminPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -82,6 +146,8 @@ export default function AdminPage() {
   const [selectedDate, setSelectedDate] = useState("");
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importType, setImportType] = useState<"answer" | "validation">("answer");
+  const [statsData, setStatsData] = useState<AdminStatistics | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -111,6 +177,28 @@ export default function AdminPage() {
       loadSettings();
     } else if (activeTab === "moderation") {
       loadReports();
+    } else if (activeTab === "stats") {
+      loadStatistics();
+    }
+  };
+
+  const loadStatistics = async () => {
+    setStatsLoading(true);
+    try {
+      const response = await fetch("/api/admin/statistics");
+      if (response.ok) {
+        const data = await response.json();
+        setStatsData(data);
+      } else {
+        setStatsData(null);
+        toast.error("Failed to load statistics");
+      }
+    } catch (error) {
+      console.error("Failed to load statistics", error);
+      setStatsData(null);
+      toast.error("Failed to load statistics");
+    } finally {
+      setStatsLoading(false);
     }
   };
 
@@ -1028,9 +1116,287 @@ export default function AdminPage() {
         )}
 
         {activeTab === "stats" && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow transition-colors">
-            <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Admin Statistics</h2>
-            <p className="text-gray-600 dark:text-gray-400">Statistics dashboard coming soon...</p>
+          <div className="space-y-6">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Statistics Dashboard</h2>
+              <button
+                type="button"
+                onClick={loadStatistics}
+                disabled={statsLoading}
+                className="px-4 py-2 rounded-md bg-wordle-correct text-white text-sm font-medium hover:bg-opacity-90 disabled:opacity-50 transition-colors"
+              >
+                {statsLoading ? "Loading..." : "Refresh"}
+              </button>
+            </div>
+
+            {statsLoading && !statsData ? (
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-12 shadow text-center text-gray-500 dark:text-gray-400">
+                Loading statistics...
+              </div>
+            ) : !statsData ? (
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-12 shadow text-center text-gray-500 dark:text-gray-400">
+                No statistics available.
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow border border-gray-100 dark:border-gray-700">
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Users</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{statsData.overview.totalUsers}</p>
+                  </div>
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow border border-gray-100 dark:border-gray-700">
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Active (7d)</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{statsData.overview.activePlayers7d}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{statsData.overview.activePlayers7dPct}%</p>
+                  </div>
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow border border-gray-100 dark:border-gray-700">
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Games Today</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{statsData.overview.gamesToday}</p>
+                  </div>
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow border border-gray-100 dark:border-gray-700">
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Games</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{statsData.overview.totalGames}</p>
+                  </div>
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow border border-gray-100 dark:border-gray-700">
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Avg Win Rate</p>
+                    <p className="text-2xl font-bold text-wordle-correct mt-1">{statsData.overview.avgWinRate}%</p>
+                  </div>
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow border border-gray-100 dark:border-gray-700">
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Active Streaks</p>
+                    <p className="text-2xl font-bold text-wordle-present mt-1">{statsData.overview.playersWithActiveStreak}</p>
+                  </div>
+                </div>
+
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow border border-gray-100 dark:border-gray-700">
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">Today&apos;s Participation</h3>
+                  <p className="text-gray-600 dark:text-gray-300 mb-2">
+                    {statsData.todayParticipation.played} out of {statsData.todayParticipation.total} players ({statsData.todayParticipation.pct}%)
+                  </p>
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4 mb-3">
+                    <div
+                      className="bg-wordle-correct h-4 rounded-full transition-all"
+                      style={{ width: `${Math.min(100, statsData.todayParticipation.pct)}%` }}
+                    />
+                  </div>
+                  {statsData.todayParticipation.notPlayedToday.length > 0 && (
+                    <details className="mt-2">
+                      <summary className="text-sm text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300">
+                        {statsData.todayParticipation.notPlayedToday.length} haven&apos;t played yet
+                      </summary>
+                      <ul className="mt-2 text-sm text-gray-600 dark:text-gray-300 list-disc list-inside max-h-32 overflow-y-auto">
+                        {statsData.todayParticipation.notPlayedToday.slice(0, 20).map((u) => (
+                          <li key={u.id}>{u.name}</li>
+                        ))}
+                        {statsData.todayParticipation.notPlayedToday.length > 20 && (
+                          <li>... and {statsData.todayParticipation.notPlayedToday.length - 20} more</li>
+                        )}
+                      </ul>
+                    </details>
+                  )}
+                </div>
+
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow border border-gray-100 dark:border-gray-700">
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Participation (Last 30 Days)</h3>
+                  {statsData.participationChart.length === 0 ? (
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">No data yet.</p>
+                  ) : (
+                    <div className="h-[280px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={statsData.participationChart} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                          <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-600" />
+                          <XAxis dataKey="date" tick={{ fontSize: 11 }} className="text-gray-500" />
+                          <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}%`} />
+                          <Tooltip
+                            contentStyle={{ backgroundColor: "var(--tw-bg-opacity)", borderRadius: "8px" }}
+                            formatter={(value: number) => [`${value}%`, "Participation"]}
+                            labelFormatter={(label) => `Date: ${label}`}
+                          />
+                          <Line type="monotone" dataKey="participation" stroke="#6AAA64" strokeWidth={2} dot={{ r: 2 }} name="Participation %" />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow border border-gray-100 dark:border-gray-700">
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Guess Distribution (All Time)</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                    Most common: {statsData.guessDistribution.mostCommon} guess(es) · Avg guesses per win: {statsData.guessDistribution.avgGuessesPerWin}
+                  </p>
+                  {statsData.guessDistribution.items.length === 0 ? (
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">No data yet.</p>
+                  ) : (
+                    <div className="h-[280px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={statsData.guessDistribution.items} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                          <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-600" />
+                          <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+                          <YAxis tick={{ fontSize: 11 }} />
+                          <Tooltip
+                            formatter={(value: number, _name: string, item: { payload?: { count: number; pct: number } }) => [
+                              `${value} games (${item.payload?.pct ?? 0}%)`,
+                              "Count",
+                            ]}
+                          />
+                          <Bar dataKey="count" fill="#6AAA64" radius={[4, 4, 0, 0]} name="Games" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow border border-gray-100 dark:border-gray-700">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Top Performers (This Week)</h3>
+                    {statsData.topPerformers.length === 0 ? (
+                      <p className="text-gray-500 dark:text-gray-400 text-sm">No games this week.</p>
+                    ) : (
+                      (() => {
+                        const maxStreak = Math.max(...statsData.topPerformers.map((p) => p.currentStreak), 0);
+                        return (
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b border-gray-200 dark:border-gray-600">
+                                <th className="text-left py-2 text-gray-500 dark:text-gray-400 font-medium">#</th>
+                                <th className="text-left py-2 text-gray-500 dark:text-gray-400 font-medium">Name</th>
+                                <th className="text-right py-2 text-gray-500 dark:text-gray-400 font-medium">Points</th>
+                                <th className="text-right py-2 text-gray-500 dark:text-gray-400 font-medium">Streak</th>
+                                <th className="text-right py-2 text-gray-500 dark:text-gray-400 font-medium">Avg Guesses</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {statsData.topPerformers.map((p, i) => (
+                                <tr
+                                  key={i}
+                                  className={`border-b border-gray-100 dark:border-gray-700/50 ${p.currentStreak === maxStreak && maxStreak > 0 ? "bg-wordle-present/10 dark:bg-wordle-present/10" : ""}`}
+                                >
+                                  <td className="py-2 text-gray-900 dark:text-white font-medium">{i + 1}</td>
+                                  <td className="py-2 text-gray-900 dark:text-white">{p.name}</td>
+                                  <td className="py-2 text-right text-wordle-correct font-medium">{p.points}</td>
+                                  <td className="py-2 text-right text-wordle-present font-medium">{p.currentStreak}</td>
+                                  <td className="py-2 text-right text-gray-600 dark:text-gray-300">{p.avgGuesses ?? "—"}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        );
+                      })()
+                    )}
+                  </div>
+
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow border border-gray-100 dark:border-gray-700">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Active Streak Leaders</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                      {statsData.atRiskCount} player(s) at risk (haven&apos;t played today)
+                    </p>
+                    {statsData.streakLeaders.length === 0 ? (
+                      <p className="text-gray-500 dark:text-gray-400 text-sm">No active streaks.</p>
+                    ) : (
+                      <ul className="space-y-2">
+                        {statsData.streakLeaders.map((s, i) => (
+                          <li key={s.userId} className="flex justify-between items-center text-sm">
+                            <span className="text-gray-900 dark:text-white">
+                              {i + 1}. {s.name}
+                            </span>
+                            <span className="font-bold text-wordle-present">{s.currentStreak} day(s)</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow border border-gray-100 dark:border-gray-700">
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Engagement Trends (Last 4 Weeks)</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                    Trend: <span className={statsData.engagementTrends.trend === "growing" ? "text-wordle-correct" : statsData.engagementTrends.trend === "declining" ? "text-red-500" : "text-gray-500"}>{statsData.engagementTrends.trend}</span>
+                    {statsData.engagementTrends.pctChange !== 0 && ` (${statsData.engagementTrends.pctChange > 0 ? "+" : ""}${statsData.engagementTrends.pctChange}%)`}
+                  </p>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    {statsData.engagementTrends.weekly.map((w, i) => (
+                      <div key={i} className="rounded-lg border border-gray-200 dark:border-gray-600 p-3">
+                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400">{w.weekLabel}</p>
+                        <p className="text-lg font-bold text-gray-900 dark:text-white">{w.participation}%</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{w.games} games</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow border border-gray-100 dark:border-gray-700">
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Word Performance (Last 10 Words)</h3>
+                  {statsData.wordPerformance.length === 0 ? (
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">No words played yet.</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-gray-200 dark:border-gray-600">
+                            <th className="text-left py-2 text-gray-500 dark:text-gray-400 font-medium">Word</th>
+                            <th className="text-left py-2 text-gray-500 dark:text-gray-400 font-medium">Date</th>
+                            <th className="text-right py-2 text-gray-500 dark:text-gray-400 font-medium">Win Rate %</th>
+                            <th className="text-right py-2 text-gray-500 dark:text-gray-400 font-medium">Avg Guesses</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {statsData.wordPerformance.map((w, i) => (
+                            <tr key={i} className="border-b border-gray-100 dark:border-gray-700/50">
+                              <td className="py-2 font-medium text-gray-900 dark:text-white">{w.word}</td>
+                              <td className="py-2 text-gray-600 dark:text-gray-300">{w.dateUsed}</td>
+                              <td className="py-2 text-right text-gray-900 dark:text-white">{w.winRate}%</td>
+                              <td className="py-2 text-right text-gray-600 dark:text-gray-300">{w.avgGuesses ?? "—"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow border border-gray-100 dark:border-gray-700">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Word Bank Status</h3>
+                    {statsData.wordBank.warning && (
+                      <div className="mb-4 p-3 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-500 dark:border-yellow-600 text-yellow-800 dark:text-yellow-200 text-sm">
+                        Warning: Fewer than 100 words remaining. Consider adding more.
+                      </div>
+                    )}
+                    <ul className="space-y-2 text-gray-700 dark:text-gray-300">
+                      <li>Total in bank: <strong>{statsData.wordBank.total}</strong></li>
+                      <li>Used: <strong>{statsData.wordBank.used}</strong></li>
+                      <li>Remaining: <strong>{statsData.wordBank.remaining}</strong></li>
+                      {statsData.wordBank.estimatedRunwayDays != null && (
+                        <li>Estimated runway: <strong>{statsData.wordBank.estimatedRunwayDays} days</strong></li>
+                      )}
+                    </ul>
+                  </div>
+
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow border border-gray-100 dark:border-gray-700">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Recent Admin Activity</h3>
+                    {statsData.recentActivity.length === 0 ? (
+                      <p className="text-gray-500 dark:text-gray-400 text-sm">No activity yet.</p>
+                    ) : (
+                      <ul className="space-y-2 text-sm">
+                        {statsData.recentActivity.map((a) => (
+                          <li key={a.id} className="border-b border-gray-100 dark:border-gray-700/50 pb-2 last:border-0">
+                            <span className="text-gray-500 dark:text-gray-400">{new Date(a.createdAt).toLocaleString()}</span>
+                            <span className="mx-1">·</span>
+                            <span className="text-gray-900 dark:text-white font-medium">{a.adminName}</span>
+                            <span className="mx-1">·</span>
+                            <span className="text-gray-700 dark:text-gray-300">
+                              {a.action}
+                              {a.details && typeof a.details === "object" && "word" in a.details && "date" in a.details && (
+                                <> &quot;{(a.details as { word?: string }).word}&quot; for {(a.details as { date?: string }).date}</>
+                              )}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>

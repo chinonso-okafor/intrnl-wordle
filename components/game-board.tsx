@@ -25,17 +25,20 @@ function Tile({ letter, state, isActive, delay = 0 }: TileProps) {
       transition={{ duration: 0.6, delay }}
       className={`flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded border-2 font-bold text-lg sm:text-xl ${
         state ? getBgColor() : "border-gray-300 bg-white dark:bg-gray-700 dark:border-gray-600"
-      } ${letter ? "border-gray-400 dark:border-gray-500" : ""} ${!state && !letter ? "dark:text-white" : ""}`}
+      } ${letter ? "border-gray-400 dark:border-gray-500" : ""} ${!state ? "dark:text-gray-100" : ""}`}
     >
       {letter.toUpperCase()}
     </motion.div>
   );
 }
 
+type GameState = "playing" | "won" | "lost";
+
 interface GameBoardProps {
   guesses: string[];
   evaluations: LetterState[][];
   currentGuess: string;
+  gameState?: GameState;
   maxAttempts?: number;
 }
 
@@ -43,12 +46,13 @@ export function GameBoard({
   guesses,
   evaluations,
   currentGuess,
+  gameState = "playing",
   maxAttempts = 6,
 }: GameBoardProps) {
   const rows = Array.from({ length: maxAttempts }, (_, i) => {
     const guess = guesses[i] || "";
     const evaluation = evaluations[i] || [];
-    const isCurrentRow = i === guesses.length;
+    const isCurrentRow = gameState === "playing" && i === guesses.length;
     const displayGuess = isCurrentRow ? currentGuess : guess;
 
     return (

@@ -264,6 +264,7 @@ export default function GamePage() {
           guesses={guesses}
           evaluations={evaluations}
           currentGuess={currentGuess}
+          gameState={gameState}
         />
         <Keyboard
           onKeyPress={handleKeyPress}
