@@ -30,6 +30,15 @@ export function getTodayDateForTimezone(timezone?: string | null): string {
 }
 
 /**
+ * Converts a YYYY-MM-DD date string to a Date at UTC midnight.
+ * Use this when storing/querying Game.date or Word.dateUsed so that
+ * "today" is consistent with the admin statistics (which use UTC).
+ */
+export function dateStringToUTCMidnight(dateStr: string): Date {
+  return new Date(`${dateStr}T00:00:00.000Z`);
+}
+
+/**
  * Client-only: returns the user's IANA timezone (e.g. "America/New_York") for the X-Timezone header.
  * Safe to call on server (returns empty string); use when building fetch headers from the browser.
  */
