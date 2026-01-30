@@ -191,7 +191,7 @@ export default function GamePage() {
 
       if (data.solved) {
         setGameState("won");
-        toast.success(`Congratulations! You solved it in ${newGuesses.length} tries!`);
+        toast.success(`Congratulations! You solved it in ${newGuesses.length} ${newGuesses.length === 1 ? "try" : "tries"}!`);
         setTimeout(() => {
           router.push("/game/result");
         }, 2000);

@@ -7,6 +7,8 @@ import { generateEmojiGrid } from "@/lib/game";
 import { getClientTimezone } from "@/lib/utils";
 import toast from "react-hot-toast";
 
+const GAME_NAME = "Optimizer Wordle";
+
 interface GameResult {
   game: {
     guesses: string[];
@@ -16,6 +18,7 @@ interface GameResult {
   };
   word: string;
   dayNumber: number;
+  date: string;
 }
 
 export default function GameResultPage() {
@@ -25,9 +28,7 @@ export default function GameResultPage() {
   const [copied, setCopied] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportReason, setReportReason] = useState("");
-    const [reporting, setReporting] = useState(false);
-  const [resetting, setResetting] = useState(false);
-  const isBetaMode = process.env.NEXT_PUBLIC_BETA_MODE === "true";
+  const [reporting, setReporting] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -60,7 +61,7 @@ export default function GameResultPage() {
     if (!result) return;
 
     const emojiGrid = generateEmojiGrid(result.game.guesses, result.word);
-    const shareText = `Wordle ${result.dayNumber} ${result.game.solved ? result.game.attempts : "X"}/6 - ${result.game.points} points\n\n${emojiGrid}`;
+    const shareText = `${GAME_NAME} ${result.date} ${result.game.solved ? result.game.attempts : "X"}/6 - ${result.game.points} points\n\n${emojiGrid}`;
 
     try {
       await navigator.clipboard.writeText(shareText);
@@ -104,31 +105,6 @@ export default function GameResultPage() {
     }
   };
 
-  const handleResetTest = async () => {
-    setResetting(true);
-    toast.loading("Cycling word bank...", { id: "reset-test" });
-    try {
-      const response = await fetch("/api/game/reset-test", {
-        method: "POST",
-      });
-
-      if (response.ok) {
-        toast.success("New word ready! Redirecting...", { id: "reset-test" });
-        setTimeout(() => {
-          router.push("/game");
-          router.refresh();
-        }, 1500);
-      } else {
-        const data = await response.json();
-        toast.error(data.error || "Failed to reset for test", { id: "reset-test" });
-      }
-    } catch (error) {
-      toast.error("Failed to reset for test", { id: "reset-test" });
-    } finally {
-      setResetting(false);
-    }
-  };
-
   if (status === "loading" || !result) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-wordle-background dark:bg-gray-900 transition-colors">
@@ -146,7 +122,7 @@ export default function GameResultPage() {
 
         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg mb-6 w-full transition-colors">
           <div className="text-center mb-4">
-            <p className="text-lg font-semibold text-gray-900 dark:text-white">Wordle {result.dayNumber}</p>
+            <p className="text-lg font-semibold text-gray-900 dark:text-white">{GAME_NAME} {result.date}</p>
             <p className="text-sm text-gray-600 dark:text-gray-400">
               {result.game.solved
                 ? `Solved in ${result.game.attempts} ${result.game.attempts === 1 ? "try" : "tries"}`
@@ -182,28 +158,6 @@ export default function GameResultPage() {
               Report This Word
             </button>
           </div>
-          
-          {isBetaMode && (
-            <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-              <button
-                onClick={handleResetTest}
-                disabled={resetting}
-                className="w-full rounded-md bg-purple-600 px-4 py-3 font-bold text-white hover:bg-purple-700 disabled:opacity-50 transition-colors shadow-md flex items-center justify-center gap-2"
-              >
-                {resetting ? (
-                  <>
-                    <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Preparing Next Word...
-                  </>
-                ) : (
-                  "🧪 BETA: Test Next Word from Bank"
-                )}
-              </button>
-              <p className="text-[10px] text-center text-purple-600 dark:text-purple-400 mt-2 uppercase font-bold tracking-widest">
-                Closed Beta Testing Feature
-              </p>
-            </div>
-          )}
         </div>
 
         {showReportModal && (

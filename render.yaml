@@ -16,8 +16,6 @@ services:
         generateValue: true
       - key: NEXTAUTH_URL
         sync: false
-      - key: NEXT_PUBLIC_BETA_MODE
-        value: "true"
 
 databases:
   - name: optimizer-wordle-db

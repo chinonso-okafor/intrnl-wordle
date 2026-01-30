@@ -54,6 +54,7 @@ export async function GET(request: Request) {
       },
       word: game.word.answerWord.word, // Word is safe to return after game completion
       dayNumber,
+      date: todayStr,
     });
   } catch (error) {
     console.error("Error fetching game result:", error);
