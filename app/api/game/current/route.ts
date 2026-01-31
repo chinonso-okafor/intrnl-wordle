@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { getTodayDateForTimezone, getTimezoneFromRequest } from "@/lib/utils";
+import { getTodayDateForTimezone, getTimezoneFromRequest, dateStringToUTCMidnight } from "@/lib/utils";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -15,10 +15,9 @@ export async function GET(request: Request) {
   const todayStr = getTodayDateForTimezone(timezone);
 
   try {
-    const today = new Date(todayStr);
-    today.setHours(0, 0, 0, 0);
+    const today = dateStringToUTCMidnight(todayStr);
 
-    // Get or create today's word
+    // Get or create today's word (only creates if none exists for this date - stable across redeploys)
     let word = await prisma.word.findUnique({
       where: { dateUsed: today },
       include: { answerWord: true },

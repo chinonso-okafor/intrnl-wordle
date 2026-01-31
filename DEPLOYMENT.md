@@ -121,6 +121,27 @@ Make sure these are set in your deployment platform:
 
 ---
 
+## Rollback
+
+If a deploy causes issues, roll back without code changes when possible:
+
+**Vercel:** Dashboard → Project → Deployments → open the previous working deployment → "…" → **Promote to Production**.
+
+**Render:** Dashboard → Your service → Deployments → find the last good deployment → **Rollback**.
+
+**Git (any host):** Revert the bad commit(s) on `main`, then push so the platform redeploys:
+
+```bash
+git checkout main
+git pull origin main
+git revert <commit-hash> --no-edit   # or: git revert HEAD~1 --no-edit
+git push origin main
+```
+
+No database rollback is needed unless you ran new migrations; this app uses read-only stats and no schema changes in typical feature deploys.
+
+---
+
 ## Troubleshooting
 
 **Database Connection Issues:**

@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { CURATED_ANSWER_WORDS } from "../lib/curated-answer-words";
+import { dateStringToUTCMidnight } from "../lib/utils";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -45,80 +46,78 @@ async function main() {
 
   console.log("Created test user:", user.email);
 
-  // Clear existing word data to avoid duplicates
-  console.log("Clearing existing word data...");
-  await prisma.word.deleteMany({});
-  await prisma.answerWord.deleteMany({});
-  await prisma.validationWord.deleteMany({});
-
-  // Seed answer words from curated list (deduplicated)
-  const answerSet = new Set(CURATED_ANSWER_WORDS.map(w => w.toUpperCase()));
-  const answerWords = Array.from(answerSet);
-  console.log(`Seeding ${answerWords.length} unique curated answer words...`);
-  
-  let answerWordCount = 0;
-  const chunkSize = 500;
-  
-  for (let i = 0; i < answerWords.length; i += chunkSize) {
-    const chunk = answerWords.slice(i, i + chunkSize);
-    await prisma.answerWord.createMany({
-      data: chunk.map(word => ({ word, source: "curated" })),
-    });
-    answerWordCount = Math.min(i + chunkSize, answerWords.length);
-    console.log(`  Progress: ${answerWordCount}/${answerWords.length} answer words`);
+  // Only seed answer words if table is empty (idempotent - do not wipe on re-run)
+  const existingAnswerCount = await prisma.answerWord.count();
+  let answerWords: string[] = [];
+  if (existingAnswerCount === 0) {
+    const answerSet = new Set(CURATED_ANSWER_WORDS.map(w => w.toUpperCase()));
+    answerWords = Array.from(answerSet);
+    console.log(`Seeding ${answerWords.length} unique curated answer words...`);
+    const chunkSize = 500;
+    for (let i = 0; i < answerWords.length; i += chunkSize) {
+      const chunk = answerWords.slice(i, i + chunkSize);
+      await prisma.answerWord.createMany({
+        data: chunk.map(word => ({ word, source: "curated" })),
+      });
+      console.log(`  Progress: ${Math.min(i + chunkSize, answerWords.length)}/${answerWords.length} answer words`);
+    }
+    console.log(`Seeded ${answerWords.length} answer words`);
+  } else {
+    console.log(`Answer words already exist (${existingAnswerCount}), skipping answer word seed`);
+    answerWords = (await prisma.answerWord.findMany({ select: { word: true } })).map(aw => aw.word);
   }
-  console.log(`Seeded ${answerWordCount} answer words`);
 
-  // Seed validation words (excluding answer words)
-  const validationWords = CURATED_VALIDATION_WORDS
-    .map(w => w.toUpperCase())
-    .filter(w => !answerSet.has(w));
-  const uniqueValidationWords = Array.from(new Set(validationWords));
-  
-  console.log(`Seeding ${uniqueValidationWords.length} validation words...`);
-  let validationWordCount = 0;
-  
-  for (let i = 0; i < uniqueValidationWords.length; i += chunkSize) {
-    const chunk = uniqueValidationWords.slice(i, i + chunkSize);
-    await prisma.validationWord.createMany({
-      data: chunk.map(word => ({ word })),
-    });
-    validationWordCount = Math.min(i + chunkSize, uniqueValidationWords.length);
-    console.log(`  Progress: ${validationWordCount}/${uniqueValidationWords.length} validation words`);
+  // Only seed validation words if table is empty (idempotent)
+  const existingValidationCount = await prisma.validationWord.count();
+  if (existingValidationCount === 0) {
+    const answerSet = new Set(answerWords.map(w => w.toUpperCase()));
+    const validationWords = CURATED_VALIDATION_WORDS
+      .map(w => w.toUpperCase())
+      .filter(w => !answerSet.has(w));
+    const uniqueValidationWords = Array.from(new Set(validationWords));
+    console.log(`Seeding ${uniqueValidationWords.length} validation words...`);
+    const chunkSize = 500;
+    for (let i = 0; i < uniqueValidationWords.length; i += chunkSize) {
+      const chunk = uniqueValidationWords.slice(i, i + chunkSize);
+      await prisma.validationWord.createMany({
+        data: chunk.map(word => ({ word })),
+      });
+      console.log(`  Progress: ${Math.min(i + chunkSize, uniqueValidationWords.length)}/${uniqueValidationWords.length} validation words`);
+    }
+    console.log(`Seeded ${uniqueValidationWords.length} validation words`);
+  } else {
+    console.log(`Validation words already exist (${existingValidationCount}), skipping validation word seed`);
   }
-  console.log(`Seeded ${validationWordCount} validation words`);
 
-  // Set today's word
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  const todayWord = answerWords[Math.floor(Math.random() * answerWords.length)];
-  
-  // Get or create answer word
-  let answerWord = await prisma.answerWord.findUnique({
-    where: { word: todayWord },
+  // Only set today's word if no word exists for today (idempotent - preserves word across redeploys)
+  const todayStr = new Date().toISOString().split("T")[0];
+  const today = dateStringToUTCMidnight(todayStr);
+  const existingTodayWord = await prisma.word.findUnique({
+    where: { dateUsed: today },
+    include: { answerWord: true },
   });
 
-  if (!answerWord) {
-    answerWord = await prisma.answerWord.create({
+  if (!existingTodayWord) {
+    const todayWord = answerWords[Math.floor(Math.random() * answerWords.length)];
+    let answerWord = await prisma.answerWord.findUnique({
+      where: { word: todayWord },
+    });
+    if (!answerWord) {
+      answerWord = await prisma.answerWord.create({
+        data: { word: todayWord, source: "curated" },
+      });
+    }
+    await prisma.word.create({
       data: {
-        word: todayWord,
-        source: "curated",
+        answerWordId: answerWord.id,
+        dateUsed: today,
+        createdBy: admin.id,
       },
     });
+    console.log(`Set today's word for ${todayStr}: ${todayWord}`);
+  } else {
+    console.log(`Word for ${todayStr} already set: ${existingTodayWord.answerWord.word} (skipping to preserve consistency)`);
   }
-  
-  await prisma.word.upsert({
-    where: { dateUsed: today },
-    update: {},
-    create: {
-      answerWordId: answerWord.id,
-      dateUsed: today,
-      createdBy: admin.id,
-    },
-  });
-
-  console.log(`Set today's word: ${todayWord}`);
 
   // Print summary
   const finalAnswerCount = await prisma.answerWord.count();
